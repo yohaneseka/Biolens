@@ -202,7 +202,7 @@ def fill_cell_holes(mask):
         cv.drawContours(filled, [cnt], -1, 255, thickness=cv.FILLED)
     return filled
 
-def bounded_opening(mask, n_iter=BO_ITERATIONS):
+def bounded_opening(mask, n_iter=ITERASI_BO):
     se     = cv.getStructuringElement(cv.MORPH_ELLIPSE, (3, 3))
     result = mask.copy()
     for _ in range(n_iter):
