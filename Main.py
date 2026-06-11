@@ -215,7 +215,7 @@ class MainWindow(QMainWindow):
                 self.capture_thread.start()
             else:
                 if self.camera.capture_image(self.imagePath): 
-                    self.displayImage(self.imagePath)
+                    self.Image(self.imagePath)
                     if self.getButton:
                         self.getButton.setEnabled(True)
                         self.getButton.setText("Get Image")
@@ -249,14 +249,6 @@ class MainWindow(QMainWindow):
             if self.clusterText: self.clusterText.setText("Gagal mengambil gambar dari kamera!")
 
     def displayImage(self, imagePath):
-        if hasattr(self, 'webcam_timer') and self.webcam_timer.isActive():
-            self.webcam_timer.stop() 
-            
-        if hasattr(self, 'camera') and getattr(self.camera, 'using_picam', False) and getattr(self.camera, 'qpicamera2', None):
-            if self.camera.qpicamera2.parent():
-                self.layout.removeWidget(self.camera.qpicamera2)
-                self.camera.qpicamera2.setParent(None)
-        
         if os.path.exists(imagePath) and self.inputIm:
             pixmap = QPixmap(imagePath)
             if pixmap.isNull():
