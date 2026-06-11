@@ -113,8 +113,8 @@ class MainWindow(QMainWindow):
         self.stopBtn = self.findChild(QPushButton, "stopBtn")
 
         if self.spinBox: self.spinBox.setRange(1, 99999)
-        if self.upBtn: self.upBtn.clicked.connect(lambda: self.motor.send_command('U', self.spinBox.value()))
-        if self.downBtn: self.downBtn.clicked.connect(lambda: self.motor.send_command('D', self.spinBox.value()))
+        if self.upBtn: self.upBtn.clicked.connect(lambda checked=False: self.motor.send_command('U', self.spinBox.value()))
+        if self.downBtn: self.downBtn.clicked.connect(lambda checked=False: self.motor.send_command('D', self.spinBox.value()))
         if self.stopBtn: self.stopBtn.clicked.connect(self.motor.stop)
 
         if self.imageSource[0]: self.imageSource[0].toggled.connect(self.cameraInputToggled)
@@ -127,11 +127,11 @@ class MainWindow(QMainWindow):
         if self.detectButton: self.detectButton.clicked.connect(self.detectCells)
         if self.pdfGenButton: self.pdfGenButton.clicked.connect(self.generatePDF)
 
-        if self.mainPage: self.mainPage.clicked.connect(lambda: self.stackedWidget.setCurrentIndex(0))
-        if self.segmentPage: self.segmentPage.clicked.connect(lambda: self.stackedWidget.setCurrentIndex(1))
-        if self.detectPage: self.detectPage.clicked.connect(lambda: self.stackedWidget.setCurrentIndex(3))
-        if self.aboutPage: self.aboutPage.clicked.connect(lambda: self.stackedWidget.setCurrentIndex(4))
-        if self.close_app: self.close_app.clicked.connect(self.close)
+        if self.mainPage: self.mainPage.clicked.connect(self.moveMainPage)
+        if self.segmentPage: self.segmentPage.clicked.connect(self.moveSegmentPage)
+        if self.detectPage: self.detectPage.clicked.connect(self.moveDetectPage)
+        if self.aboutPage: self.aboutPage.clicked.connect(self.moveAboutPage)
+        if self.close_app: self.close_app.clicked.connect(self.closeApp)
 
         self.setStyles()
 
@@ -147,6 +147,17 @@ class MainWindow(QMainWindow):
             if self.inputIm: self.inputIm.setLayout(self.layout)
             self.camera.start_camera()
 
+    def moveMainPage(self):
+        if self.stackedWidget: self.stackedWidget.setCurrentIndex(0)
+    def moveSegmentPage(self):
+        if self.stackedWidget: self.stackedWidget.setCurrentIndex(1)
+    def moveDetectPage(self):
+        if self.stackedWidget: self.stackedWidget.setCurrentIndex(3)
+    def moveAboutPage(self):
+        if self.stackedWidget: self.stackedWidget.setCurrentIndex(4)
+    def closeApp(self):
+        self.close()
+    
     def update_sensor_value(self):
         distance = self.sensor.read_distance()
         if self.distVal:
