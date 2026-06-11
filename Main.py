@@ -122,11 +122,12 @@ class MainWindow(QMainWindow):
         if self.detectButton: self.detectButton.clicked.connect(self.detectCells)
         if self.pdfGenButton: self.pdfGenButton.clicked.connect(self.generatePDF)
 
-        if self.mainPage: self.mainPage.clicked.connect(lambda checked=False: self.stackedWidget.setCurrentIndex(0))
-        if self.segmentPage: self.segmentPage.clicked.connect(lambda checked=False: self.stackedWidget.setCurrentIndex(1))
-        if self.detectPage: self.detectPage.clicked.connect(lambda checked=False: self.stackedWidget.setCurrentIndex(3))
-        if self.aboutPage: self.aboutPage.clicked.connect(lambda checked=False: self.stackedWidget.setCurrentIndex(4))
-        if self.close_app: self.close_app.clicked.connect(self.close)
+        # MENGGUNAKAN FUNGSI AMAN UNTUK MENU AGAR TIDAK FREEZE
+        if self.mainPage: self.mainPage.clicked.connect(self.moveMainPage)
+        if self.segmentPage: self.segmentPage.clicked.connect(self.moveSegmentPage)
+        if self.detectPage: self.detectPage.clicked.connect(self.moveDetectPage)
+        if self.aboutPage: self.aboutPage.clicked.connect(self.moveAboutPage)
+        if self.close_app: self.close_app.clicked.connect(self.closeApp)
 
         self.setStyles()
 
@@ -233,7 +234,7 @@ class MainWindow(QMainWindow):
                     self.is_primary_data = False
                 
                 shutil.copy(selected_file, self.imagePath)
-                self.Image(self.imagePath)
+                self.displayImage(self.imagePath) 
 
     def on_capture_done(self, success):
         if self.getButton:
@@ -243,12 +244,20 @@ class MainWindow(QMainWindow):
         if success:
             print("✅ Thread Kamera Selesai: Berhasil")
             time.sleep(0.3) 
-            self.Image(self.imagePath)
+            self.displayImage(self.imagePath) 
         else:
             print("❌ Thread Kamera Selesai: GAGAL")
             if self.clusterText: self.clusterText.setText("Gagal mengambil gambar dari kamera!")
 
     def displayImage(self, imagePath):
+        if hasattr(self, 'webcam_timer') and self.webcam_timer.isActive():
+            self.webcam_timer.stop()
+            
+        if hasattr(self, 'camera') and getattr(self.camera, 'using_picam', False) and getattr(self.camera, 'qpicamera2', None):
+            if self.camera.qpicamera2.parent():
+                self.layout.removeWidget(self.camera.qpicamera2)
+                self.camera.qpicamera2.setParent(None)
+                
         if os.path.exists(imagePath) and self.inputIm:
             pixmap = QPixmap(imagePath)
             if pixmap.isNull():
@@ -410,6 +419,7 @@ class MainWindow(QMainWindow):
         except Exception as e:
             if self.detectText: 
                 self.detectText.setText(f"Detection failed: {e}")
+                
     def generatePDF(self):
         pdf_path = os.path.join(self.current_res_dir, f"Report_{self.current_patient}.pdf")
         pdf = PDFWithHeaderFooter(self.base_dir)
