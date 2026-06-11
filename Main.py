@@ -215,7 +215,7 @@ class MainWindow(QMainWindow):
                 self.capture_thread.start()
             else:
                 if self.camera.capture_image(self.imagePath): 
-                    self.displayImage(self.imagePath)
+                    self.Image(self.imagePath)
                     if self.getButton:
                         self.getButton.setEnabled(True)
                         self.getButton.setText("Get Image")
@@ -233,7 +233,7 @@ class MainWindow(QMainWindow):
                     self.is_primary_data = False
                 
                 shutil.copy(selected_file, self.imagePath)
-                self.displayImage(self.imagePath)
+                self.Image(self.imagePath)
 
     def on_capture_done(self, success):
         if self.getButton:
@@ -243,19 +243,19 @@ class MainWindow(QMainWindow):
         if success:
             print("✅ Thread Kamera Selesai: Berhasil")
             time.sleep(0.3) 
-            self.displayImage(self.imagePath)
+            self.Image(self.imagePath)
         else:
             print("❌ Thread Kamera Selesai: GAGAL")
             if self.clusterText: self.clusterText.setText("Gagal mengambil gambar dari kamera!")
 
     def displayImage(self, imagePath):
-        if hasattr(self, 'timer') and self.timer.isActive():
-            self.timer.stop() # Matikan timer OpenCV
+        if hasattr(self, 'webcam_timer') and self.webcam_timer.isActive():
+            self.webcam_timer.stop() 
             
-        if self.using_picam and self.qpicamera2 is not None:
-            if self.qpicamera2.parent():
-                self.layout.removeWidget(self.qpicamera2)
-                self.qpicamera2.setParent(None)
+        if hasattr(self, 'camera') and getattr(self.camera, 'using_picam', False) and getattr(self.camera, 'qpicamera2', None):
+            if self.camera.qpicamera2.parent():
+                self.layout.removeWidget(self.camera.qpicamera2)
+                self.camera.qpicamera2.setParent(None)
         
         if os.path.exists(imagePath) and self.inputIm:
             pixmap = QPixmap(imagePath)
