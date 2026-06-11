@@ -279,7 +279,7 @@ class MainWindow(QMainWindow):
                 print(f"⚠️ Gambar referensi tidak ditemukan di {ref_path}. Normalisasi Reinhard dilewati.")
 
         self.hsv_clean_image, _ = convert_hsv_circular(self.raw_image_rgb, v_thresh=20)
-        self.segmented_images, _ = kmeans_segmentation(self.hsv_clean_image, k=6, use_preprocessing=True, ref_img_rgb=ref_image_rgb)
+        _, _, self.segmented_images = kmeans_segmentation(self.hsv_clean_image, k=6, ref_img_rgb=ref_image_rgb)
 
         for idx, segment_image in enumerate(self.segmented_images):
             clusterPath = os.path.join(self.current_clust_dir, f"cluster_{idx+1}.jpg")
