@@ -82,7 +82,7 @@ def preprocess_image(img_rgb, ref_img_rgb=None):
         img_norm = img
         
     # 3. CLAHE
-    img = apply_clahe(img_norm)
+    img_clahe = apply_clahe(img_norm)
     
     # 4. LoG Enhancement
     img_f = apply_log_enhancement(img_clahe)
