@@ -215,7 +215,7 @@ class MainWindow(QMainWindow):
                 self.capture_thread.start()
             else:
                 if self.camera.capture_image(self.imagePath): 
-                    self.Image(self.imagePath)
+                    self.displayImage(self.imagePath)
                     if self.getButton:
                         self.getButton.setEnabled(True)
                         self.getButton.setText("Get Image")
