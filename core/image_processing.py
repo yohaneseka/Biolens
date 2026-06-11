@@ -64,7 +64,7 @@ def build_log_kernel(size=LOG_KERNEL_SIZE, sigma=LOG_SIGMA):
     
 def apply_log_enhancement(img_clahe, sigma=LOG_SIGMA, kernel_size=LOG_KERNEL_SIZE, alpha=LOG_ALPHA):
     img_f = img_clahe.astype(np.float32) / 255.0
-    log_k = _build_log_kernel(size=kernel_size, sigma=sigma).astype(np.float32)
+    log_k = build_log_kernel(size=kernel_size, sigma=sigma).astype(np.float32)
     sharpened = np.zeros_like(img_f)
     for i in range(3):
         response = cv.filter2D(img_f[:, :, i], cv.CV_32F, log_k)
