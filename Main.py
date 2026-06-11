@@ -50,13 +50,8 @@ class MainWindow(QMainWindow):
         
         self.base_dir = os.path.dirname(os.path.abspath(__file__))
         
-        ui_files = glob.glob(os.path.join(self.base_dir, "**", "*.ui"), recursive=True)
+        uic.loadUi("Main_Program.ui", self)
         
-        if len(ui_files) > 0:
-            uic.loadUi(ui_files[0], self) # Load file .ui pertama yang ketemu
-        else:
-            raise FileNotFoundError("Pastikan kamu sudah meng-upload file .ui ke GitHub dan git pull di Raspi.")
-
         logo_biomed_path = os.path.join(self.base_dir, "add-on", "BIOMED.png")
         if hasattr(self, 'label_15') and os.path.exists(logo_biomed_path):
             self.label_15.setPixmap(QPixmap(logo_biomed_path).scaled(
@@ -127,11 +122,11 @@ class MainWindow(QMainWindow):
         if self.detectButton: self.detectButton.clicked.connect(self.detectCells)
         if self.pdfGenButton: self.pdfGenButton.clicked.connect(self.generatePDF)
 
-        if self.mainPage: self.mainPage.clicked.connect(self.moveMainPage)
-        if self.segmentPage: self.segmentPage.clicked.connect(self.moveSegmentPage)
-        if self.detectPage: self.detectPage.clicked.connect(self.moveDetectPage)
-        if self.aboutPage: self.aboutPage.clicked.connect(self.moveAboutPage)
-        if self.close_app: self.close_app.clicked.connect(self.closeApp)
+        if self.mainPage: self.mainPage.clicked.connect(lambda checked=False: self.stackedWidget.setCurrentIndex(0))
+        if self.segmentPage: self.segmentPage.clicked.connect(lambda checked=False: self.stackedWidget.setCurrentIndex(1))
+        if self.detectPage: self.detectPage.clicked.connect(lambda checked=False: self.stackedWidget.setCurrentIndex(3))
+        if self.aboutPage: self.aboutPage.clicked.connect(lambda checked=False: self.stackedWidget.setCurrentIndex(4))
+        if self.close_app: self.close_app.clicked.connect(self.close)
 
         self.setStyles()
 
