@@ -79,13 +79,13 @@ def preprocess_image(img_rgb, ref_img_rgb=None):
     if ref_img_rgb is not None:
         img_norm = reinhard_normalization(img, ref_img_rgb)
     else:
-        img_norm = img_denoised
+        img_norm = img
         
     # 3. CLAHE
-    img = apply_clahe(img)
+    img = apply_clahe(img_norm)
     
     # 4. LoG Enhancement
-    img_f = apply_log_enhancement(img)
+    img_f = apply_log_enhancement(img_clahe)
     return (img_f * 255).astype(np.uint8)
 
 # Tahapan Segmentasi
