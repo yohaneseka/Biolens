@@ -56,7 +56,9 @@ def build_log_kernel(size=LOG_KERNEL_SIZE, sigma=LOG_SIGMA):
     k = size // 2
     y, x = np.mgrid[-k:k+1, -k:k+1].astype(np.float64)
     r2 = x**2 + y**2
-    kernel = -(1.0 / (np.pi * sigma**4)) * \ (1 - r2 / (2 * sigma**2)) * \ np.exp(-r2 / (2 * sigma**2))
+    kernel = -(1.0 / (np.pi * sigma**4)) * \
+             (1 - r2 / (2 * sigma**2)) * \
+             np.exp(-r2 / (2 * sigma**2))
     kernel -= kernel.mean()   
     return kernel
     
@@ -217,11 +219,11 @@ def bounded_opening_frs(binary_mask, num_openings=ITERASI_BO):
     # Bounded Opening 
     opened_mask = bounded_opening(filled_mask, n_iter=num_openings)
  
-    # ── Distance Transform 
+    # Distance Transform 
     dist_transform = cv.distanceTransform(opened_mask, cv.DIST_L2, 5)
     dist_norm      = cv.normalize(dist_transform, None, 0.0, 1.0, cv.NORM_MINMAX)
  
-    # Gradient for FRS votes ────────────────────────────────────────────────
+    # Gradient for FRS votes 
     gx      = cv.Sobel(dist_norm, cv.CV_64F, 1, 0, ksize=3)
     gy      = cv.Sobel(dist_norm, cv.CV_64F, 0, 1, ksize=3)
     gmag    = np.sqrt(gx**2 + gy**2)
