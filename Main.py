@@ -249,6 +249,14 @@ class MainWindow(QMainWindow):
             if self.clusterText: self.clusterText.setText("Gagal mengambil gambar dari kamera!")
 
     def displayImage(self, imagePath):
+        if hasattr(self, 'timer') and self.timer.isActive():
+            self.timer.stop() # Matikan timer OpenCV
+            
+        if self.using_picam and self.qpicamera2 is not None:
+            if self.qpicamera2.parent():
+                self.layout.removeWidget(self.qpicamera2)
+                self.qpicamera2.setParent(None)
+        
         if os.path.exists(imagePath) and self.inputIm:
             pixmap = QPixmap(imagePath)
             if pixmap.isNull():
