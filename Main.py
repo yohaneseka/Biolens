@@ -142,6 +142,7 @@ class MainWindow(QMainWindow):
         self._initializing = False
         
         self.setStyles()
+        self._re_enable_navigation()
 
         if self.camera.using_picam and self.camera.qpicamera2:
             self.layout.setContentsMargins(0, 0, 0, 0)
