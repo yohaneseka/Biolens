@@ -183,19 +183,12 @@ class MainWindow(QMainWindow):
         for folder in [self.current_raw_dir, self.current_clust_dir, self.current_sep_dir, self.current_res_dir]: os.makedirs(folder, exist_ok=True)
 
     def cameraInputToggled(self, checked):
-    
         print("CAMERA TOGGLED", checked)
-    
         if checked:
-    
             self.sensor_timer.start(500)
-    
             if self.camera.using_picam:
-    
                 if self.camera.qpicamera2.parent() is None:
-    
                     self.layout.addWidget(self.camera.qpicamera2)
-    
                     if self.inputIm:
                         self.inputIm.setLayout(self.layout)
     
