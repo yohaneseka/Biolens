@@ -25,13 +25,13 @@ class ESP32Controller:
             try:
                 self.serial_conn = serial.Serial(port, 115200, timeout=1)
                 self.available = True
-                print(f"✅ ESP32 Terhubung via {port}!")
+                print(f"ESP32 Terhubung via {port}!")
                 time.sleep(2)
                 break
             except Exception:
                 continue
         if not self.available:
-            print("❌ ESP32 Tidak Terdeteksi. Program jalan dalam Mode Simulasi Motor.")
+            print("ESP32 Tidak Terdeteksi. Program jalan dalam Mode Simulasi Motor.")
 
     def send_command(self, direction_char, steps):
         if self.available and self.serial_conn and self.serial_conn.is_open:
@@ -40,14 +40,14 @@ class ESP32Controller:
                 self.serial_conn.write(pesan.encode('utf-8'))
                 print(f"📡 Mengirim ke ESP32: {pesan.strip()}")
             except Exception as e:
-                print(f"❌ Gagal mengirim perintah serial: {e}")
+                print(f"Gagal mengirim perintah serial: {e}")
         else:
-            print(f"⚠️ Mode Simulasi: Motor {direction_char} {steps} langkah")
+            print(f"Mode Simulasi: Motor {direction_char} {steps} langkah")
 
     def stop(self):
         if self.available and self.serial_conn and self.serial_conn.is_open:
             self.serial_conn.write("S0\n".encode('utf-8'))
-            print("🛑 Motor Stop")
+            print("Motor Stop")
 
     def close(self):
         if self.serial_conn and self.serial_conn.is_open:
@@ -66,6 +66,7 @@ class MagnificationSensor:
             import adafruit_vl53l0x
             i2c = busio.I2C(board.SCL, board.SDA)
             self._sensor = adafruit_vl53l0x.VL53L0X(i2c)
+            self._sensor.measurement_timing_budget = 200000
             self._mode = "vl53l0x"
             print("Sensor VL53L0X terdeteksi via I2C")
         except Exception as e:
@@ -78,11 +79,11 @@ class MagnificationSensor:
                 mm = self._sensor.range
                 if mm <= 0 or mm > 8000:
                     return -1.0
-                return mm / 10.0  
+                return mm / 10.0
             except Exception as e:
-                print(f"⚠️ Gagal baca sensor: {e}")
+                print(f"Gagal baca sensor: {e}")
                 return -1.0
-        return 15.4 
+        return 15.4
 
 class CameraSystem:
     def __init__(self):
