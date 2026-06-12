@@ -181,8 +181,7 @@ class MainWindow(QMainWindow):
                        self.aboutPage, self.close_app]
         for btn in nav_buttons:
             if btn:
-                btn.setEnabled(True)
-                btn.raise_()   
+                btn.setEnabled(True) 
     
     def _create_session_folders(self):
         self.current_patient = self.nameInput.text().strip().replace(" ", "_") if self.nameInput and self.nameInput.text().strip() != "" else "Anonim"
