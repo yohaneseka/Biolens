@@ -201,8 +201,8 @@ class MainWindow(QMainWindow):
                 try:
                     self.camera.picam2.stop()
                     self.camera_started = False
-            except:
-                pass
+                except:
+                    pass
             if self.inputIm: self.inputIm.clear()
 
     def _update_frame(self):
