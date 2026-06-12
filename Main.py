@@ -33,7 +33,7 @@ class CaptureThread(QThread):
 
     def __init__(self, camera, image_path):
         super().__init__()
-        self.camera = camera
+        self.camera_started = False
         self.image_path = image_path
 
     def run(self):
@@ -141,7 +141,7 @@ class MainWindow(QMainWindow):
             self.layout.setContentsMargins(0, 0, 0, 0)
             self.layout.addWidget(self.camera.qpicamera2)
             if self.inputIm: self.inputIm.setLayout(self.layout)
-            self.camera.start_camera()
+            self.camera_started = False
 
     def moveMainPage(self):
         if self.stackedWidget: self.stackedWidget.setCurrentIndex(0)
@@ -181,6 +181,11 @@ class MainWindow(QMainWindow):
 
     def cameraInputToggled(self, checked):
         if checked:
+
+            if self.camera.using_picam and not self.camera_started:
+            self.camera.start_camera()
+            self.camera_started = True
+            
             self.sensor_timer.start(500)
             if not self.camera.using_picam: self.webcam_timer.start(30)
             if self.inputIm: self.inputIm.clear()
@@ -190,6 +195,12 @@ class MainWindow(QMainWindow):
             self.sensor_timer.stop()
             if self.distVal: self.distVal.setText("Camera is not active")
             self.webcam_timer.stop()
+            if self.camera.using_picam and self.camera_started:
+            try:
+                self.camera.picam2.stop()
+                self.camera_started = False
+            except:
+                pass
             if self.inputIm: self.inputIm.clear()
 
     def _update_frame(self):
