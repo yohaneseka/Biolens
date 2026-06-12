@@ -203,6 +203,11 @@ class MainWindow(QMainWindow):
                     self.camera_started = False
                 except:
                     pass
+
+            if self.camera.using_picam and self.camera.qpicamera2:
+                self.layout.removeWidget(self.camera.qpicamera2)
+                self.camera.qpicamera2.setParent(None)
+            
             if self.inputIm: self.inputIm.clear()
 
     def _update_frame(self):
