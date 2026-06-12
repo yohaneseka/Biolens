@@ -117,6 +117,7 @@ class MainWindow(QMainWindow):
         self.sensor_timer.timeout.connect(self.update_sensor_value)
         self.webcam_timer = QTimer()
         self.webcam_timer.timeout.connect(self._update_frame)
+        self.camera_started = False
 
         if self.imageSource[0]: self.imageSource[0].toggled.connect(self.cameraInputToggled)
         if self.imageSource[1]: self.imageSource[1].toggled.connect(self.externalFileToggled)
@@ -146,7 +147,6 @@ class MainWindow(QMainWindow):
             self.layout.setContentsMargins(0, 0, 0, 0)
             self.layout.addWidget(self.camera.qpicamera2)
             if self.inputIm: self.inputIm.setLayout(self.layout)
-            self.camera_started = False
 
     def moveMainPage(self):
         if self.stackedWidget: self.stackedWidget.setCurrentIndex(0)
