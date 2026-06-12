@@ -24,8 +24,10 @@ class SVMDetector:
         else:
             print(f"File .pkl tidak ditemukan di {models_dir}")
 
-    def run_detection_pipeline(self, extracted_cells, bounding_boxes_sep, cell_masks_list,
-                               raw_image_rgb, output_dir, patient_id):
+    def run_detection_pipeline(self, extracted_cells, bounding_boxes_sep, 
+                               cell_masks_list,
+                               preprocessed_image_rgb, 
+                               output_dir, patient_id):
         if self.model is None or self.scaler is None or self.metadata is None:
             raise Exception("Model SVM tidak ditemukan! Pastikan file pkl ada di folder source/models/")
 
