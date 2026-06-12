@@ -177,8 +177,8 @@ class MainWindow(QMainWindow):
         if self.aboutPage: self.aboutPage.setStyleSheet(menu_style)
 
     def _re_enable_navigation(self):
-    nav_buttons = [self.mainPage, self.segmentPage, self.detectPage, 
-                   self.aboutPage, self.close_app]
+        nav_buttons = [self.mainPage, self.segmentPage, self.detectPage, 
+                       self.aboutPage, self.close_app]
         for btn in nav_buttons:
             if btn:
                 btn.setEnabled(True)
