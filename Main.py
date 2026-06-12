@@ -33,7 +33,7 @@ class CaptureThread(QThread):
 
     def __init__(self, camera, image_path):
         super().__init__()
-        self.camera_started = False
+        self.camera = camera
         self.image_path = image_path
 
     def run(self):
@@ -112,7 +112,7 @@ class MainWindow(QMainWindow):
         if self.downBtn: self.downBtn.clicked.connect(lambda checked=False: self.motor.send_command('D', self.spinBox.value()))
         if self.stopBtn: self.stopBtn.clicked.connect(self.motor.stop)
 
-        if self.imageSource[0]: self.imageSource[0].toggled.connect(self.Toggled)
+        if self.imageSource[0]: self.imageSource[0].toggled.connect(self.cameraInputToggled)
         if self.imageSource[1]: self.imageSource[1].toggled.connect(self.externalFileToggled)
         if self.getButton: self.getButton.clicked.connect(self.takeImage)
         if self.kmeansButton: self.kmeansButton.clicked.connect(self.kmeansProcess)
