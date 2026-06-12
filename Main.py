@@ -81,7 +81,7 @@ class MainWindow(QMainWindow):
         self.aboutPage = self.findChild(QPushButton, "abtBtn")
         self.close_app = self.findChild(QPushButton, "closeBtn")
 
-        self.distVal = self.findChild(QLabel, "distVal_2")
+        self.distVal = self.findChild(QLabel, "distVal")
         self.imageSource = [self.findChild(QRadioButton, "camInput"), self.findChild(QRadioButton, "fileInput")]
         self.getButton = self.findChild(QPushButton, "getBtn")
         self.inputIm = self.findChild(QLabel, "rawImage")
