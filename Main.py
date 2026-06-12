@@ -407,7 +407,7 @@ class MainWindow(QMainWindow):
         try:
             res_path, ida_c, norm_c, top5 = self.ml_detector.run_detection_pipeline(
                 self.extracted_cells, self.bounding_boxes_sep, self.cell_masks_list, self.preprocessed_image,
-                self.raw_image_rgb, self.current_res_dir, self.current_patient
+                self.current_res_dir, self.current_patient
             )
             
             self.detectResultPath = res_path
