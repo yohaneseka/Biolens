@@ -181,17 +181,26 @@ class MainWindow(QMainWindow):
 
     def cameraInputToggled(self, checked):
         if checked:
-
-            if self.camera.using_picam and not self.camera_started:
-                self.camera.start_camera()
-                self.camera_started = True
-            
-            self.sensor_timer.start(500)
-            if not self.camera.using_picam: 
+    
+            if self.camera.using_picam:
+    
+                if self.camera.qpicamera2 and not self.camera.qpicamera2.parent():
+                    self.layout.addWidget(self.camera.qpicamera2)
+                    self.inputIm.setLayout(self.layout)
+    
+                if not self.camera_started:
+                    self.camera.start_camera()
+                    self.camera_started = True
+    
+            else:
                 self.webcam_timer.start(30)
-            if self.inputIm: 
+    
+            self.update_sensor_value()
+            self.sensor_timer.start(500)
+    
+            if self.inputIm:
                 self.inputIm.clear()
-
+                
     def externalFileToggled(self, checked):
         if checked:
             self.sensor_timer.stop()
