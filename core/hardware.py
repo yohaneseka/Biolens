@@ -55,9 +55,33 @@ class ESP32Controller:
 
 class MagnificationSensor:
     def __init__(self):
-        pass # Area inisialisasi sensor I2C/analog
-        
+        self._sensor = None
+        self._mode = "simulation"
+        self._init_sensor()
+
+    def _init_sensor(self):
+        try:
+            import board
+            import busio
+            import adafruit_vl53l0x
+            i2c = busio.I2C(board.SCL, board.SDA)
+            self._sensor = adafruit_vl53l0x.VL53L0X(i2c)
+            self._mode = "vl53l0x"
+            print("Sensor VL53L0X terdeteksi via I2C")
+        except Exception as e:
+            print(f"VL53L0X tidak terdeteksi ({e}), mode simulasi aktif")
+            self._mode = "simulation"
+
     def read_distance(self):
+        if self._mode == "vl53l0x":
+            try:
+                mm = self._sensor.range
+                if mm <= 0 or mm > 8000:
+                    return -1.0
+                return mm / 10.0  
+            except Exception as e:
+                print(f"⚠️ Gagal baca sensor: {e}")
+                return -1.0
         return 15.4 
 
 class CameraSystem:
