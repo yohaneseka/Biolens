@@ -51,17 +51,17 @@ class SVMDetector:
         normal_count = int((predictions == 0).sum())
 
         # 4. Gambar hasil deteksi di atas gambar asli
-        result_img = cv.cvtColor(raw_image_rgb.copy(), cv.COLOR_RGB2BGR)
+        result_img = cv.cvtColor(preprocessed_image_rgb.copy(), cv.COLOR_RGB2BGR)
         for bbox, pred in zip(bounding_boxes_sep, predictions):
             x, y, w, h = bbox
-            color = (0, 0, 255) if pred == 1 else (0, 255, 0)  # merah=IDA, hijau=Normal
+            color = (0, 0, 255) if pred == 1 else (0, 255, 0)
             label = "IDA" if pred == 1 else "Normal"
             cv.rectangle(result_img, (x, y), (x+w, y+h), color, 5)
             cv.putText(result_img, label, (x, y - 8),
                        cv.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
-
+    
         res_path = os.path.join(output_dir, f"detection_result_{patient_id}.jpg")
         cv.imwrite(res_path, result_img)
-
+    
         top5 = selected_features[:5] if len(selected_features) >= 5 else selected_features
         return res_path, ida_count, normal_count, top5
