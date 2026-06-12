@@ -142,7 +142,16 @@ class MainWindow(QMainWindow):
         self._initializing = False
         
         self.setStyles()
-        self._re_enable_navigation()
+        print("=== CEK STATUS TOMBOL ===")
+        for name, btn in [("mainPage", self.mainPage), 
+                          ("aboutPage", self.aboutPage),
+                          ("close_app", self.close_app),
+                          ("segmentPage", self.segmentPage),
+                          ("detectPage", self.detectPage)]:
+            if btn:
+                print(f"{name}: enabled={btn.isEnabled()}, parent={btn.parent()}, parent_enabled={btn.parent().isEnabled() if btn.parent() else 'N/A'}")
+            else:
+                print(f"{name}: NOT FOUND")
 
         if self.camera.using_picam and self.camera.qpicamera2:
             self.layout.setContentsMargins(0, 0, 0, 0)
