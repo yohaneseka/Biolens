@@ -81,7 +81,7 @@ class MainWindow(QMainWindow):
         self.aboutPage = self.findChild(QPushButton, "abtBtn")
         self.close_app = self.findChild(QPushButton, "closeBtn")
 
-        self.distVal = self.findChild(QLabel, "distVal")
+        self.distVal = self.findChild(QLabel, "distVal3")
         self.imageSource = [self.findChild(QRadioButton, "camInput"), self.findChild(QRadioButton, "fileInput")]
         self.getButton = self.findChild(QPushButton, "getBtn")
         self.inputIm = self.findChild(QLabel, "rawImage")
@@ -176,6 +176,14 @@ class MainWindow(QMainWindow):
         if self.detectPage: self.detectPage.setStyleSheet(btn_style)
         if self.aboutPage: self.aboutPage.setStyleSheet(menu_style)
 
+    def _re_enable_navigation(self):
+    nav_buttons = [self.mainPage, self.segmentPage, self.detectPage, 
+                   self.aboutPage, self.close_app]
+        for btn in nav_buttons:
+            if btn:
+                btn.setEnabled(True)
+                btn.raise_()   
+    
     def _create_session_folders(self):
         self.current_patient = self.nameInput.text().strip().replace(" ", "_") if self.nameInput and self.nameInput.text().strip() != "" else "Anonim"
         session_folder_name = f"{self.current_patient}_{time.strftime('%Y%m%d_%H%M%S')}"
@@ -344,7 +352,8 @@ class MainWindow(QMainWindow):
             self.clusterIm[idx].setAlignment(Qt.AlignCenter)
             
         if self.clusterText: self.clusterText.setText("K-Means & Normalization done.")
-
+        self._re_enable_navigation()
+        
     def extractCells(self):
         self.stackedWidget.setCurrentIndex(2)
         QApplication.processEvents()
@@ -376,7 +385,8 @@ class MainWindow(QMainWindow):
             self.extractedIm.setAlignment(Qt.AlignCenter)
         if self.rbcValText: 
             self.rbcValText.setText(f"{len(self.extracted_cells)} RBC detected. Click Separate Cells if overlapping.")
-
+        self._re_enable_navigation()
+        
     def separateOverlap(self):
         if self.rbcValText: self.rbcValText.setText("Separating overlapping cells using BO-FRS + GMM...")
         QApplication.processEvents()
@@ -395,7 +405,8 @@ class MainWindow(QMainWindow):
             self.extractedIm.setPixmap(QPixmap(sepPath).scaled(self.extractedIm.width(), self.extractedIm.height(), Qt.KeepAspectRatio, Qt.SmoothTransformation))
             self.extractedIm.setAlignment(Qt.AlignCenter)
         if self.rbcValText: self.rbcValText.setText(f"Separation completed! {len(self.extracted_cells)} individual cells detected.")
-
+        self._re_enable_navigation()
+        
     def saveExtractedCells(self):
         if self.rbcValText: self.rbcValText.setText("Saving cells and extracting features, please wait...")
         QApplication.processEvents()
@@ -419,7 +430,8 @@ class MainWindow(QMainWindow):
                     self.rbcValText.setText("Feature extraction returned no results.")
         except Exception as e:
             if self.rbcValText: self.rbcValText.setText(f"Feature extraction failed: {e}")
-
+        self._re_enable_navigation()
+        
     def detectCells(self):
         self.stackedWidget.setCurrentIndex(3)
         if self.detectText: 
@@ -463,7 +475,8 @@ class MainWindow(QMainWindow):
         except Exception as e:
             if self.detectText: 
                 self.detectText.setText(f"Detection failed: {e}")
-                
+       self._re_enable_navigation()
+
     def generatePDF(self):
         pdf_path = os.path.join(self.current_res_dir, f"Report_{self.current_patient}.pdf")
         pdf = PDFWithHeaderFooter(self.base_dir)
