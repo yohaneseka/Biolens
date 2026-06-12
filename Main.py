@@ -112,7 +112,7 @@ class MainWindow(QMainWindow):
         if self.downBtn: self.downBtn.clicked.connect(lambda checked=False: self.motor.send_command('D', self.spinBox.value()))
         if self.stopBtn: self.stopBtn.clicked.connect(self.motor.stop)
 
-        if self.imageSource[0]: self.imageSource[0].toggled.connect(self.cameraInputToggled)
+        if self.imageSource[0]: self.imageSource[0].toggled.connect(self.Toggled)
         if self.imageSource[1]: self.imageSource[1].toggled.connect(self.externalFileToggled)
         if self.getButton: self.getButton.clicked.connect(self.takeImage)
         if self.kmeansButton: self.kmeansButton.clicked.connect(self.kmeansProcess)
@@ -156,9 +156,12 @@ class MainWindow(QMainWindow):
     
     def update_sensor_value(self):
         distance = self.sensor.read_distance()
+        print("SENSOR:", distance)
+
         if self.distVal:
-            if not np.isnan(distance): self.distVal.setText(f"Lens to Object Dist : {distance:.1f} mm")
-            else: self.distVal.setText("Lens to Object Dist : Error/Out of Range")
+            self.distVal.setText(
+                f"Lens to Object Dist : {distance:.1f} mm"
+            )
 
     def setStyles(self):
         btn_style = "QPushButton {border:1px; border-radius: 10px; color: rgb(0,0,0); background-color: rgb(214, 222, 255);} QPushButton:hover {background-color: rgb(35, 56, 148); color: rgb(255,255,255);} QPushButton:checked {background-color: rgb(4, 21, 98); color: rgb(255,255,255);}"
@@ -180,13 +183,21 @@ class MainWindow(QMainWindow):
         for folder in [self.current_raw_dir, self.current_clust_dir, self.current_sep_dir, self.current_res_dir]: os.makedirs(folder, exist_ok=True)
 
     def cameraInputToggled(self, checked):
+    
+        print("CAMERA TOGGLED", checked)
+    
         if checked:
+    
+            self.sensor_timer.start(500)
     
             if self.camera.using_picam:
     
-                if self.camera.qpicamera2 and not self.camera.qpicamera2.parent():
+                if self.camera.qpicamera2.parent() is None:
+    
                     self.layout.addWidget(self.camera.qpicamera2)
-                    self.inputIm.setLayout(self.layout)
+    
+                    if self.inputIm:
+                        self.inputIm.setLayout(self.layout)
     
                 if not self.camera_started:
                     self.camera.start_camera()
@@ -195,11 +206,7 @@ class MainWindow(QMainWindow):
             else:
                 self.webcam_timer.start(30)
     
-            self.update_sensor_value()
-            self.sensor_timer.start(500)
-    
-            if self.inputIm:
-                self.inputIm.clear()
+            self.inputIm.clear()
                 
     def externalFileToggled(self, checked):
         if checked:
