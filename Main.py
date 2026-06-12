@@ -242,11 +242,11 @@ class MainWindow(QMainWindow):
             self.getButton.setText("Get Image")
             
         if success:
-            print("✅ Thread Kamera Selesai: Berhasil")
+            print("Thread Kamera Selesai: Berhasil")
             time.sleep(0.3) 
             self.displayImage(self.imagePath) 
         else:
-            print("❌ Thread Kamera Selesai: GAGAL")
+            print("Thread Kamera Selesai: GAGAL")
             if self.clusterText: self.clusterText.setText("Gagal mengambil gambar dari kamera!")
 
     def displayImage(self, imagePath):
@@ -261,19 +261,19 @@ class MainWindow(QMainWindow):
         if os.path.exists(imagePath) and self.inputIm:
             pixmap = QPixmap(imagePath)
             if pixmap.isNull():
-                print(f"❌ Gagal memuat Pixmap! File rusak: {imagePath}")
+                print(f"Gagal memuat Pixmap! File rusak: {imagePath}")
                 return
             
             self.raw_image = imageio.imread(imagePath)
             self.raw_image_rgb = cv.cvtColor(self.raw_image, cv.COLOR_BGR2RGB)
 
-            print(f"🖼️ Menampilkan gambar ke QLabel: {imagePath}")
+            print(f"Menampilkan gambar ke QLabel: {imagePath}")
             self.inputIm.setPixmap(pixmap.scaled(self.inputIm.width(), self.inputIm.height(), Qt.KeepAspectRatio, Qt.SmoothTransformation))
             self.inputIm.setAlignment(Qt.AlignCenter)
             self.inputIm.repaint() 
             QApplication.processEvents() 
         else:
-            print(f"❌ File gambar TIDAK DITEMUKAN: {imagePath}")
+            print(f"File gambar TIDAK DITEMUKAN: {imagePath}")
 
     def kmeansProcess(self):
         if not hasattr(self, 'current_clust_dir'):
@@ -291,9 +291,13 @@ class MainWindow(QMainWindow):
             if os.path.exists(ref_path):
                 ref_image_rgb = cv.cvtColor(cv.imread(ref_path), cv.COLOR_BGR2RGB)
             else:
-                print(f"⚠️ Gambar referensi tidak ditemukan di {ref_path}. Normalisasi Reinhard dilewati.")
+                print(f"Gambar referensi tidak ditemukan di {ref_path}. Normalisasi Reinhard dilewati.")
 
         self.hsv_clean_image, _ = convert_hsv_circular(self.raw_image_rgb, v_thresh=20)
+
+        from core.image_processing import preprocess_image
+        self.preprocessed_image = preprocess_image(self.raw_image_rgb, ref_img_rgb=ref_image_rgb)
+        
         _, _, self.segmented_images = kmeans_segmentation(self.raw_image_rgb, k=6, ref_img_rgb=ref_image_rgb)
 
         for idx, segment_image in enumerate(self.segmented_images):
@@ -392,11 +396,12 @@ class MainWindow(QMainWindow):
             if self.detectText: 
                 self.detectText.setText("No cells extracted. Please run Extract first.")
             return
+            
+        base_image = getattr(self, 'preprocessed_image', self.raw_image_rgb)
 
         try:
-            # Jalankan SVM Pipeline yang baru
             res_path, ida_c, norm_c, top5 = self.ml_detector.run_detection_pipeline(
-                self.extracted_cells, self.bounding_boxes_sep, 
+                self.extracted_cells, self.bounding_boxes_sep, self.cell_masks_list,
                 self.raw_image_rgb, self.current_res_dir, self.current_patient
             )
             
