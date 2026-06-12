@@ -171,8 +171,7 @@ class MainWindow(QMainWindow):
     
     def update_sensor_value(self):
         distance = self.sensor.read_distance()
-        print("SENSOR:", distance)
-
+       
         if self.distVal:
             self.distVal.setText(
                 f"Lens to Object Dist : {distance:.1f} mm"
