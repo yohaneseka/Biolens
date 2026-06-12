@@ -129,6 +129,11 @@ class MainWindow(QMainWindow):
         if self.aboutPage: self.aboutPage.clicked.connect(self.moveAboutPage)
         if self.close_app: self.close_app.clicked.connect(self.closeApp)
 
+        self._initializing = True
+        if self.imageSource[0]:
+            self.imageSource[0].setChecked(True)
+        self._initializing = False
+        
         self.setStyles()
 
         self.layout = QVBoxLayout()
@@ -202,6 +207,8 @@ class MainWindow(QMainWindow):
             self.inputIm.clear()
                 
     def externalFileToggled(self, checked):
+        if getattr(self, '_initializing', False):  # tambah baris ini
+            return
         if checked:
             self.sensor_timer.stop()
             if self.distVal: self.distVal.setText("Camera is not active")
