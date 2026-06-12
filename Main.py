@@ -475,7 +475,7 @@ class MainWindow(QMainWindow):
         except Exception as e:
             if self.detectText: 
                 self.detectText.setText(f"Detection failed: {e}")
-       self._re_enable_navigation()
+        self._re_enable_navigation()
 
     def generatePDF(self):
         pdf_path = os.path.join(self.current_res_dir, f"Report_{self.current_patient}.pdf")
