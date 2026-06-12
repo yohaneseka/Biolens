@@ -36,7 +36,7 @@ class SVMDetector:
             raise Exception("Metadata tidak memiliki daftar 'features'.")
 
         df_features, _, _ = run_feature_extraction(
-            extracted_cells, bounding_boxes_sep, cell_masks_list, raw_image_rgb.shape
+            extracted_cells, bounding_boxes_sep, cell_masks_list, preprocessed_image_rgb.shape
         )
         if df_features.empty:
             raise Exception("Feature extraction tidak menghasilkan data.")
