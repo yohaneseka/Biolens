@@ -112,6 +112,12 @@ class MainWindow(QMainWindow):
         if self.downBtn: self.downBtn.clicked.connect(lambda checked=False: self.motor.send_command('D', self.spinBox.value()))
         if self.stopBtn: self.stopBtn.clicked.connect(self.motor.stop)
 
+        self.layout = QVBoxLayout()
+        self.sensor_timer = QTimer()
+        self.sensor_timer.timeout.connect(self.update_sensor_value)
+        self.webcam_timer = QTimer()
+        self.webcam_timer.timeout.connect(self._update_frame)
+
         if self.imageSource[0]: self.imageSource[0].toggled.connect(self.cameraInputToggled)
         if self.imageSource[1]: self.imageSource[1].toggled.connect(self.externalFileToggled)
         if self.getButton: self.getButton.clicked.connect(self.takeImage)
@@ -135,12 +141,6 @@ class MainWindow(QMainWindow):
         self._initializing = False
         
         self.setStyles()
-
-        self.layout = QVBoxLayout()
-        self.sensor_timer = QTimer()
-        self.sensor_timer.timeout.connect(self.update_sensor_value)
-        self.webcam_timer = QTimer()
-        self.webcam_timer.timeout.connect(self._update_frame)
 
         if self.camera.using_picam and self.camera.qpicamera2:
             self.layout.setContentsMargins(0, 0, 0, 0)
