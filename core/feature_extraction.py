@@ -67,9 +67,14 @@ def extract_morphological_features(contour, mask):
 
     aspect_ratio = major_axis / minor_axis if minor_axis > 0 else 0.0
 
+    x, y, w, h = cv.boundingRect(contour)
+    bbox_area = w * h
+    rectangularity = area / bbox_area if bbox_area > 0 else 0.0
+
     return {
         "Area": area, "Perimeter": perimeter, "Major_Axis": major_axis, "Minor_Axis": minor_axis,
-        "Compactness": compactness, "Eccentricity": eccentricity, "Solidity": solidity, "Aspect_Ratio": aspect_ratio,
+        "Compactness": compactness, "Eccentricity": eccentricity, "Solidity": solidity,
+        "Aspect_Ratio": aspect_ratio, "Rectangularity": rectangularity,  # ← TAMBAHAN
     }
 
 def extract_central_pallor_features(cell_img, cell_mask):
