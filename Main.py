@@ -424,7 +424,6 @@ class MainWindow(QMainWindow):
             self.rbcValText.setText("Menyimpan sel & mengekstraksi fitur, harap tunggu...")
         QApplication.processEvents()
     
-        # Simpan gambar tiap sel
         self.cell_info = []
         for idx, (cell_img, bbox) in enumerate(zip(self.extracted_cells, self.bounding_boxes_sep)):
             save_path = os.path.join(self.current_sep_dir, f"cell_{idx}.png")
