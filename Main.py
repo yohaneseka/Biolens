@@ -347,7 +347,7 @@ class MainWindow(QMainWindow):
         from core.image_processing import preprocess_image
         self.preprocessed_image = preprocess_image(self.raw_image_rgb, ref_img_rgb=ref_image_rgb)
         
-        _, _, self.segmented_images = kmeans_segmentation(self.preprocessed_image, k=6, ref_img_rgb=ref_image_rgb)
+        _, _, self.segmented_images = kmeans_segmentation(self.preprocessed_image, k=6)
 
         for idx, segment_image in enumerate(self.segmented_images):
             clusterPath = os.path.join(self.current_clust_dir, f"cluster_{idx+1}.jpg")
