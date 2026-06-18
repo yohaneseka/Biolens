@@ -6,17 +6,28 @@ class PDFWithHeaderFooter(FPDF):
     def __init__(self, base_dir):
         super().__init__()
         self.base_dir = base_dir
-        self.add_font("Poppins", "", os.path.join(self.base_dir, "add-on/Poppins-Bold.ttf"), uni=True)
-        self.add_font("Inter", "", os.path.join(self.base_dir, "add-on/Inter_18pt-SemiBold.ttf"), uni=True)
         self.timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+        
+        poppins_path = os.path.join(self.base_dir, "add-on", "Poppins-Bold.ttf")
+        inter_path = os.path.join(self.base_dir, "add-on", "Inter_18pt-SemiBold.ttf")
+        
+        if os.path.exists(poppins_path) and os.path.exists(inter_path):
+            self.add_font("Poppins", "", poppins_path, uni=True)
+            self.add_font("Inter", "", inter_path, uni=True)
+            self.font_title = "Poppins"
+            self.font_body = "Inter"
+        else:
+            print("⚠️ Peringatan: File font TTF tidak ditemukan di folder add-on. Menggunakan font Arial.")
+            self.font_title = "Arial"
+            self.font_body = "Arial"
 
     def header(self):
-        self.set_font("Poppins", "", 20)
+        self.set_font(self.font_title, "", 20)
         self.set_fill_color(4, 21, 98)
         self.set_xy(0, 16)
         self.cell(165, 3, fill=True)
         
-        logo_path = os.path.join(self.base_dir, "add-on/logo.png")
+        logo_path = os.path.join(self.base_dir, "add-on", "logo.png")
         if os.path.exists(logo_path):
             self.image(logo_path, x=170, y=10, w=30)
             
@@ -26,7 +37,7 @@ class PDFWithHeaderFooter(FPDF):
 
     def footer(self):
         self.set_y(-20)
-        self.set_font("Poppins", "", 15)
+        self.set_font(self.font_title, "", 15)
         self.set_text_color(100)
         self.cell(0, 10, "MalaScope, 2026", align="L")
         self.set_xy(65, 281)
@@ -35,7 +46,7 @@ class PDFWithHeaderFooter(FPDF):
 
     def generate_result(self, imagePath, detectPath, cells, mal, parPath, output_path, patient_name, top_features=None):
         self.add_page()
-        self.set_font("Inter", size=12)
+        self.set_font(self.font_body, size=12)
         self.set_xy(18, 40)
         self.set_text_color(0)
         self.cell(170, 10, f"Patient Name / ID: {patient_name.replace('_', ' ')}", ln=True)
@@ -66,10 +77,10 @@ class PDFWithHeaderFooter(FPDF):
 
         self.ln(5)
         self.set_x(18)
-        self.set_font("Poppins", "", 12)
+        self.set_font(self.font_title, "", 12)
         self.cell(170, 8, "Key Morphological Features Analyzed:", ln=True)
         
-        self.set_font("Inter", size=10)
+        self.set_font(self.font_body, size=10)
         self.set_text_color(80)
         if top_features:
             features_text = ", ".join(top_features)
@@ -80,7 +91,7 @@ class PDFWithHeaderFooter(FPDF):
         self.set_x(18)
         self.multi_cell(170, 5, explanation)
 
-        current_y = self.get_y() + 5 # Supaya dinamis letaknya mengikuti panjang teks
+        current_y = self.get_y() + 5 
         if parPath and os.path.exists(parPath) and os.path.isdir(parPath):
             image_files = os.listdir(parPath)[:8]
             for index, filename in enumerate(image_files):
@@ -94,6 +105,9 @@ class PDFWithHeaderFooter(FPDF):
         box_y = current_y + 70 
         self.set_text_color(255)
         self.set_xy(18, box_y)
+        
+        style_title = "" if self.font_title == "Poppins" else "B"
+        self.set_font(self.font_title, style_title, 11)
         
         if mal > 0:
             self.set_fill_color(220, 53, 69) 
