@@ -368,7 +368,11 @@ class MainWindow(QMainWindow):
         self.selected_cluster = [i for i, chk in enumerate(self.selectCluster) if chk.isChecked()]
         rgb_clean_image = cv.cvtColor(self.hsv_clean_image, cv.COLOR_HSV2RGB)
         
-        self.rbc_only_image, self.filtered_mask, self.binary_mask = remove_unwanted_cells_extended(self.segmented_images, self.selected_cluster, rgb_clean_image)
+        self.rbc_only_image, self.filtered_mask, self.binary_mask = remove_unwanted_cells_extended(
+            self.segmented_images, 
+            self.selected_cluster, 
+            self.preprocessed_image
+        )
         
         gray_img = cv.cvtColor(self.rbc_only_image, cv.COLOR_RGB2GRAY)
         edge_map, contour_edge = sobel_edge_detect(gray_img)
