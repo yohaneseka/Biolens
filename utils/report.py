@@ -33,7 +33,7 @@ class PDFWithHeaderFooter(FPDF):
         self.set_fill_color(4, 21, 98)
         self.cell(170, 2, fill=True)
 
-    def generate_result(self, imagePath, detectPath, cells, mal, parPath, output_path, patient_name):
+    def generate_result(self, imagePath, detectPath, cells, mal, parPath, output_path, patient_name, top_features=None):
         self.add_page()
         self.set_font("Inter", size=12)
         self.set_xy(18, 40)
@@ -54,29 +54,52 @@ class PDFWithHeaderFooter(FPDF):
 
         self.set_text_color(0)
         self.set_xy(18, 135)
-        self.set_font_size(14)
-        self.cell(170, 10, f"Total red blood cells detected: {cells}", border=1, ln=True)
+        self.set_font_size(12)
+        
+        severity_ratio = (mal / cells * 100) if cells > 0 else 0
+        
+        self.cell(170, 8, f"Total red blood cells detected: {cells}", border=1, ln=True)
         self.set_x(18)
-        self.cell(170, 10, f"Infected/Abnormal cells detected: {mal}", border=1, ln=True)
+        self.cell(170, 8, f"Infected/Abnormal cells detected: {mal}", border=1, ln=True)
+        self.set_x(18)
+        self.cell(170, 8, f"IDA Severity / Confidence Ratio: {severity_ratio:.2f}%", border=1, ln=True)
 
+        self.ln(5)
+        self.set_x(18)
+        self.set_font("Poppins", "", 12)
+        self.cell(170, 8, "Key Morphological Features Analyzed:", ln=True)
+        
+        self.set_font("Inter", size=10)
+        self.set_text_color(80)
+        if top_features:
+            features_text = ", ".join(top_features)
+            explanation = f"The classification model relies on top extracted features: {features_text}. In Iron Deficiency Anemia (IDA), these metrics are crucial for identifying variations in cell size (microcytosis), cell shape (poikilocytosis), and central pallor widening."
+        else:
+            explanation = "Morphological features such as cell area, perimeter, and shape factor were analyzed to determine cell normality."
+            
+        self.set_x(18)
+        self.multi_cell(170, 5, explanation)
+
+        current_y = self.get_y() + 5 # Supaya dinamis letaknya mengikuti panjang teks
         if parPath and os.path.exists(parPath) and os.path.isdir(parPath):
             image_files = os.listdir(parPath)[:8]
             for index, filename in enumerate(image_files):
                 col = index % 4
                 row = index // 4
                 x = 40 + col * 32
-                y = 163 + row * 32
+                y = current_y + row * 32
                 file_path = os.path.join(parPath, filename)
                 self.image(file_path, x=x, y=y, w=30, h=30)
 
+        box_y = current_y + 70 
         self.set_text_color(255)
-        if mal != 0:
-            self.set_xy(18, 230)
-            self.set_fill_color(255, 0, 0)
-            self.multi_cell(170, 6, "Based on our system's detection results, the patient is identified as having abnormalities (IDA) and requires further clinical evaluation.", border=1, fill=True)
+        self.set_xy(18, box_y)
+        
+        if mal > 0:
+            self.set_fill_color(220, 53, 69) 
+            self.multi_cell(170, 6, f"CONCLUSION: Based on system detection, the patient exhibits a {severity_ratio:.1f}% ratio of abnormal cells, indicating potential IDA. Further clinical evaluation is recommended.", border=1, fill=True)
         else:
-            self.set_xy(18, 170)
-            self.set_fill_color(0, 255, 0)
-            self.multi_cell(170, 6, "Our system's detection results indicate normal cells in the patient.", border=1, fill=True)
+            self.set_fill_color(40, 167, 69) 
+            self.multi_cell(170, 6, "CONCLUSION: The system detection indicates normal cells. No significant morphological abnormalities associated with IDA were found.", border=1, fill=True)
 
         self.output(output_path)
