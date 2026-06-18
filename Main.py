@@ -434,7 +434,6 @@ class MainWindow(QMainWindow):
             cv.imwrite(save_path, cv.cvtColor(cell_img, cv.COLOR_RGB2BGR))
             self.cell_info.append({"filename": f"cell_{idx}.png", "bbox": bbox})
     
-        # Ekstraksi fitur → simpan CSV
         csv_path = os.path.join(self.current_res_dir, f"features_{self.current_patient}.csv")
         try:
             self.df_features, self.cell_labels, filter_stats = run_feature_extraction(
@@ -519,11 +518,12 @@ class MainWindow(QMainWindow):
             self.total_cells = ida_count + normal_count
             self.ida_cells   = ida_count
     
-            top5    = selected_features[:5]
+            self.top10    = selected_features[:10]
+            top10 = selected_features[:10]
             summary = (
                 f"Deteksi Selesai!\n"
                 f"Total sel: {self.total_cells} | IDA: {ida_count} | Normal: {normal_count}\n"
-                f"Top-5 Fitur:\n" + "\n".join(f"  {i+1}. {f}" for i, f in enumerate(top5))
+                f"Top-10 Fitur:\n" + "\n".join(f"  {i+1}. {f}" for i, f in enumerate(top10))
             )
             if self.detectText:
                 self.detectText.setText(summary)
@@ -545,10 +545,18 @@ class MainWindow(QMainWindow):
     def generatePDF(self):
         pdf_path = os.path.join(self.current_res_dir, f"Report_{self.current_patient}.pdf")
         pdf = PDFWithHeaderFooter(self.base_dir)
+        
+        features_to_pass = getattr(self, 'top10_features', []) 
+        
         pdf.generate_result(
-            imagePath=self.imagePath, detectPath=self.detectResultPath,
-            cells=self.total_cells, mal=self.ida_cells, parPath=self.current_sep_dir,
-            output_path=pdf_path, patient_name=self.current_patient
+            imagePath=self.imagePath, 
+            detectPath=self.detectResultPath,
+            cells=self.total_cells, 
+            mal=self.ida_cells, 
+            parPath=self.current_sep_dir,
+            output_path=pdf_path, 
+            patient_name=self.current_patient,
+            top_features=features_to_pass # 
         )
         if self.detectText: self.detectText.setText(f"Report generated in PDF format at {self.current_res_dir}")
 
