@@ -98,9 +98,8 @@ def make_fg_mask(image_rgb, luma_floor=BG_LUMA_FLOOR):
     fg_2d = (otsu_mask == 255) & floor_mask
     return fg_2d.flatten()
 
-def kmeans_segmentation(image_rgb, k=K, ref_img_rgb=None):
-    processed_img = preprocess_image(image_rgb, ref_img_rgb=ref_img_rgb)
- 
+def kmeans_segmentation(processed_img, k=K):
+    
     h, w = processed_img.shape[:2]
     lab  = cv.cvtColor(processed_img, cv.COLOR_RGB2LAB).astype(np.float32)
     ab   = lab[:, :, 1:3].reshape(-1, 2)     # a* and b* channels only
