@@ -347,7 +347,7 @@ class MainWindow(QMainWindow):
         from core.image_processing import preprocess_image
         self.preprocessed_image = preprocess_image(self.raw_image_rgb, ref_img_rgb=ref_image_rgb)
         
-        _, _, self.segmented_images = kmeans_segmentation(self.raw_image_rgb, k=6, ref_img_rgb=ref_image_rgb)
+        _, _, self.segmented_images = kmeans_segmentation(self.preprocessed_image, k=6, ref_img_rgb=ref_image_rgb)
 
         for idx, segment_image in enumerate(self.segmented_images):
             clusterPath = os.path.join(self.current_clust_dir, f"cluster_{idx+1}.jpg")
@@ -492,7 +492,7 @@ class MainWindow(QMainWindow):
             ida_count    = int((predictions == 1).sum())
             normal_count = int((predictions == 0).sum())
     
-            result_img = cv.cvtColor(self.preprocessed_image.copy(), cv.COLOR_RGB2BGR)
+            result_img = cv.cvtColor(self.raw_image_rgb.copy(), cv.COLOR_RGB2BGR)
             for i, pred in enumerate(predictions):
                 x = int(self.df_features.iloc[i]["X"])
                 y = int(self.df_features.iloc[i]["Y"])
