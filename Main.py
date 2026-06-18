@@ -17,7 +17,6 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import QPixmap, QImage
 from PyQt5 import uic
 
-# Mengimpor seluruh modul core
 from core.hardware import ESP32Controller, MagnificationSensor, CameraSystem
 from core.image_processing import (
     convert_hsv_circular, kmeans_segmentation, remove_unwanted_cells_extended,
@@ -416,73 +415,128 @@ class MainWindow(QMainWindow):
         self._re_enable_navigation()
         
     def saveExtractedCells(self):
-        if self.rbcValText: self.rbcValText.setText("Saving cells and extracting features, please wait...")
+        if not hasattr(self, 'extracted_cells') or len(self.extracted_cells) == 0:
+            if self.rbcValText:
+                self.rbcValText.setText("Tidak ada sel. Jalankan Extract dulu!")
+            return
+    
+        if self.rbcValText:
+            self.rbcValText.setText("Menyimpan sel & mengekstraksi fitur, harap tunggu...")
         QApplication.processEvents()
-        
+    
+        # Simpan gambar tiap sel
         self.cell_info = []
         for idx, (cell_img, bbox) in enumerate(zip(self.extracted_cells, self.bounding_boxes_sep)):
-            cv.imwrite(os.path.join(self.current_sep_dir, f"cell_{idx}.png"), cv.cvtColor(cell_img, cv.COLOR_RGB2BGR))
+            save_path = os.path.join(self.current_sep_dir, f"cell_{idx}.png")
+            cv.imwrite(save_path, cv.cvtColor(cell_img, cv.COLOR_RGB2BGR))
             self.cell_info.append({"filename": f"cell_{idx}.png", "bbox": bbox})
-
-        excel_path = os.path.join(self.current_res_dir, f"features_{self.current_patient}.xlsx")
+    
+        # Ekstraksi fitur → simpan CSV
+        csv_path = os.path.join(self.current_res_dir, f"features_{self.current_patient}.csv")
         try:
             self.df_features, self.cell_labels, filter_stats = run_feature_extraction(
-                self.extracted_cells, self.bounding_boxes_sep, self.cell_masks_list, self.rbc_only_image.shape, output_csv_path=None
+                extracted_cells=self.extracted_cells,
+                bounding_boxes=self.bounding_boxes_sep,
+                cell_masks=self.cell_masks_list,
+                img_shape=self.rbc_only_image.shape,
+                output_csv_path=None
             )
             if not self.df_features.empty:
-                self.df_features.to_excel(excel_path, index=False)
-                if self.rbcValText: 
-                    self.rbcValText.setText(f"{len(self.extracted_cells)} cells saved. {filter_stats['passed']} quality cells.")
+                self.df_features.to_csv(csv_path, index=False)
+                if self.rbcValText:
+                    self.rbcValText.setText(
+                        f"{len(self.extracted_cells)} sel tersimpan | "
+                        f"{filter_stats['passed']} lolos QC | "
+                        f"Ditolak: border={filter_stats['border']}, "
+                        f"kecil={filter_stats['small']}, besar={filter_stats['large']}, "
+                        f"bentuk={filter_stats['shape']} — "
+                        f"Klik 'Feature Extraction' untuk deteksi."
+                    )
             else:
-                if self.rbcValText: 
-                    self.rbcValText.setText("Feature extraction returned no results.")
+                if self.rbcValText:
+                    self.rbcValText.setText("Tidak ada sel yang lolos quality filter.")
         except Exception as e:
-            if self.rbcValText: self.rbcValText.setText(f"Feature extraction failed: {e}")
+            if self.rbcValText:
+                self.rbcValText.setText(f"Ekstraksi fitur gagal: {e}")
+    
         self._re_enable_navigation()
         
     def detectCells(self):
         self.stackedWidget.setCurrentIndex(3)
-        if self.detectText: 
-            self.detectText.setText("Running SVM model and feature extraction...")
+        if self.detectText:
+            self.detectText.setText("Menjalankan seleksi fitur & model SVM...")
         QApplication.processEvents()
-
-        if not hasattr(self, "extracted_cells") or len(self.extracted_cells) == 0:
-            if self.detectText: 
-                self.detectText.setText("No cells extracted. Please run Extract first.")
+    
+        if not hasattr(self, 'df_features') or self.df_features.empty:
+            if self.detectText:
+                self.detectText.setText("Belum ada fitur. Jalankan Save dulu!")
             return
-            
-        base_image = getattr(self, 'preprocessed_image', self.raw_image_rgb)
-        
+    
         if not hasattr(self, 'preprocessed_image'):
             if self.detectText:
-                self.detectText.setText("Detection failed: Jalankan K-Means dulu sebelum Detect.")
+                self.detectText.setText("Jalankan K-Means dulu sebelum deteksi.")
             return
-        
+    
         try:
-            res_path, ida_c, norm_c, top5 = self.ml_detector.run_detection_pipeline(
-                self.extracted_cells, self.bounding_boxes_sep, self.cell_masks_list, self.preprocessed_image,
-                self.current_res_dir, self.current_patient
+            selected_features = self.ml_detector.metadata.get('features', [])
+            if not selected_features:
+                raise Exception("Metadata model tidak memiliki daftar 'features'.")
+    
+            missing = [f for f in selected_features if f not in self.df_features.columns]
+            if missing:
+                raise Exception(f"Fitur tidak ada di hasil ekstraksi: {missing}")
+    
+            X = self.df_features[selected_features].replace([np.inf, -np.inf], np.nan).fillna(0)
+            X_scaled    = self.ml_detector.scaler.transform(X)
+            predictions = self.ml_detector.model.predict(X_scaled)
+    
+            ida_count    = int((predictions == 1).sum())
+            normal_count = int((predictions == 0).sum())
+    
+            result_img = cv.cvtColor(self.preprocessed_image.copy(), cv.COLOR_RGB2BGR)
+            for i, pred in enumerate(predictions):
+                x = int(self.df_features.iloc[i]["X"])
+                y = int(self.df_features.iloc[i]["Y"])
+                bbox_match = next(
+                    (b for b in self.bounding_boxes_sep if b[0] == x and b[1] == y), None
+                )
+                bx, by, bw, bh = bbox_match if bbox_match else (x, y, 40, 40)
+    
+                color = (0, 0, 255) if pred == 1 else (0, 255, 0)
+                label = "IDA" if pred == 1 else "Normal"
+                cv.rectangle(result_img, (bx, by), (bx + bw, by + bh), color, 5)
+                cv.putText(result_img, label, (bx, by - 8),
+                           cv.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+    
+            self.detectResultPath = os.path.join(
+                self.current_res_dir, f"detection_result_{self.current_patient}.jpg"
             )
-            
-            self.detectResultPath = res_path
-            self.total_cells = ida_c + norm_c
-            self.ida_cells = ida_c
-            
-            summary = f"SVM Classification Complete!\nTotal cells: {self.total_cells} | IDA: {ida_c} | Normal: {norm_c}\nTop Features Used:\n" + "\n".join(f"  {i+1}. {f}" for i, f in enumerate(top5))
-            
-            if self.detectText: 
+            cv.imwrite(self.detectResultPath, result_img)
+    
+            self.total_cells = ida_count + normal_count
+            self.ida_cells   = ida_count
+    
+            top5    = selected_features[:5]
+            summary = (
+                f"Deteksi Selesai!\n"
+                f"Total sel: {self.total_cells} | IDA: {ida_count} | Normal: {normal_count}\n"
+                f"Top-5 Fitur:\n" + "\n".join(f"  {i+1}. {f}" for i, f in enumerate(top5))
+            )
+            if self.detectText:
                 self.detectText.setText(summary)
-            
-            if self.detectIm: 
-                self.detectIm.setPixmap(QPixmap(res_path).scaled(
-                    self.detectIm.width(), self.detectIm.height(), 
-                    Qt.KeepAspectRatio, Qt.SmoothTransformation
-                ))
+            if self.detectIm:
+                self.detectIm.setPixmap(
+                    QPixmap(self.detectResultPath).scaled(
+                        self.detectIm.width(), self.detectIm.height(),
+                        Qt.KeepAspectRatio, Qt.SmoothTransformation
+                    )
+                )
                 self.detectIm.setAlignment(Qt.AlignCenter)
-
+    
         except Exception as e:
-            if self.detectText: 
-                self.detectText.setText(f"Detection failed: {e}")
+            if self.detectText:
+                self.detectText.setText(f"Deteksi gagal: {e}")
+    
         self._re_enable_navigation()
 
     def generatePDF(self):
