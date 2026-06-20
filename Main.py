@@ -26,7 +26,7 @@ from core.image_processing import (
 from core.feature_extraction import run_feature_extraction
 from core.machine_learning import SVMDetector
 from utils.report import PDFWithHeaderFooter
-from core.feature_labels import FEATURE_LABELS
+from core.dictionary import FEATURE_LABELS
 
 class CaptureThread(QThread):
     capture_finished = pyqtSignal(bool)
