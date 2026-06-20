@@ -24,41 +24,116 @@ def normalize_cell_crop(crop_bgr, cell_mask, target_size=NORM_TARGET_SIZE,
     h, w   = cell_mask.shape[:2]
     ys, xs = np.where(cell_mask == 255)
     if len(ys) == 0:
-        crop_out = cv.resize(crop_bgr,  (target_size, target_size), interpolation=cv.INTER_LINEAR)
+        crop_out = cv.resize(crop_bgr,  (target_size, target_size), interpolation=cv.INTER_AREA)
         mask_out = cv.resize(cell_mask, (target_size, target_size), interpolation=cv.INTER_NEAREST)
         return crop_out, mask_out, False
     y0, y1 = int(ys.min()), int(ys.max())
     x0, x1 = int(xs.min()), int(xs.max())
-    bh, bw = max(y1 - y0, 1), max(x1 - x0, 1)
-    pad    = int(max(bh, bw) * pad_frac)
-    sy0 = max(0, y0 - pad);  sy1 = min(h, y1 + pad + 1)
-    sx0 = max(0, x0 - pad);  sx1 = min(w, x1 + pad + 1)
-    crop_out = cv.resize(crop_bgr[sy0:sy1, sx0:sx1],
-                         (target_size, target_size), interpolation=cv.INTER_LINEAR)
-    mask_out = cv.resize(cell_mask[sy0:sy1, sx0:sx1],
-                         (target_size, target_size), interpolation=cv.INTER_NEAREST)
+    bw, bh = (x1 - x0 + 1), (y1 - y0 + 1)
+                            
+    pad_x = int(round(bw * pad_frac))
+    pad_y = int(round(bh * pad_frac))
+                            
+    x0p = max(0, x0 - pad_x);  x1p = min(w, x1 + 1 + pad_x)
+    y0p = max(0, y0 - pad_y);  y1p = min(h, y1 + 1 + pad_y)
+                            
+    crop_w = x1p - x0p
+    crop_h = y1p - y0p
+    side   = max(crop_w, crop_h) 
+                            
+    cx = (x0p + x1p) / 2.0
+    cy = (y0p + y1p) / 2.0
+ 
+    sx0 = int(round(cx - side / 2.0));  sx1 = sx0 + side
+    sy0 = int(round(cy - side / 2.0));  sy1 = sy0 + side
+ 
+    if sx0 < 0:          sx1 -= sx0;       sx0 = 0
+    if sy0 < 0:          sy1 -= sy0;       sy0 = 0
+    if sx1 > w:          sx0 -= (sx1 - w); sx1 = w
+    if sy1 > h:          sy0 -= (sy1 - h); sy1 = h
+    sx0 = max(0, sx0);   sy0 = max(0, sy0)
+ 
+    crop_sq = crop_bgr[sy0:sy1, sx0:sx1]
+    mask_sq = cell_mask[sy0:sy1, sx0:sx1]
+ 
+    if crop_sq.size == 0:
+        crop_out = cv.resize(crop_bgr,  (target_size, target_size), interpolation=cv.INTER_AREA)
+        mask_out = cv.resize(cell_mask, (target_size, target_size),minterpolation=cv.INTER_NEAREST)
+        return crop_out, mask_out, False
+ 
+    crop_out = cv.resize(crop_sq, (target_size, target_size), minterpolation=cv.INTER_AREA)
+    mask_out = cv.resize(mask_sq, (target_size, target_size), interpolation=cv.INTER_NEAREST)
+    _, mask_out = cv.threshold(mask_out, 127, 255, cv.THRESH_BINARY)
+ 
     return crop_out, mask_out, True
 
 
-def isolate_target_cell(crop_bgr):
+def isolate_target_cell(crop_bgr, min_distance_px=10, min_area_ws=150):
     h, w  = crop_bgr.shape[:2]
-    lab   = cv.cvtColor(crop_bgr, cv.COLOR_BGR2LAB)
-    L_ch  = lab[:, :, 0]
+    cx_c  = w / 2.0
+    cy_c  = h / 2.0
+ 
+    lab  = cv.cvtColor(crop_bgr, cv.COLOR_BGR2LAB)
+    L_ch = lab[:, :, 0]
     _, raw_mask = cv.threshold(L_ch, 0, 255, cv.THRESH_BINARY_INV + cv.THRESH_OTSU)
-    k = cv.getStructuringElement(cv.MORPH_ELLIPSE, (7, 7))
-    closed = cv.morphologyEx(raw_mask, cv.MORPH_CLOSE, k)
-    n_labels, labels, stats, centroids = cv.connectedComponentsWithStats(
-        closed, connectivity=8)
-    best_label, best_dist = -1, float('inf')
-    cx_c, cy_c = w / 2.0, h / 2.0
+ 
+    k_close = cv.getStructuringElement(cv.MORPH_ELLIPSE, (7, 7))
+    closed  = cv.morphologyEx(raw_mask, cv.MORPH_CLOSE, k_close)
+ 
+    contours_fh, _ = cv.findContours(closed, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    closed_filled = np.zeros_like(closed)
+    cv.drawContours(closed_filled, contours_fh, -1, 255, -1)
+ 
+    MIN_AREA = 200
+ 
+    dist = cv.distanceTransform(closed_filled, cv.DIST_L2, 5)
+ 
+    coords = peak_local_max(dist, min_distance=min_distance_px,
+                            labels=closed_filled, exclude_border=False)
+ 
+    if len(coords) >= 2:
+        markers_mask = np.zeros(dist.shape, dtype=bool)
+        markers_mask[tuple(coords.T)] = True
+        markers, _ = ndi.label(markers_mask)
+ 
+        ws_labels = watershed(-dist, markers, mask=closed_filled)
+ 
+        labels   = np.zeros_like(ws_labels, dtype=np.int32)
+        next_lbl = 1
+        for lbl_id in range(1, ws_labels.max() + 1):
+            region = (ws_labels == lbl_id)
+            if region.sum() >= min_area_ws:
+                labels[region] = next_lbl
+                next_lbl += 1
+        n_labels = next_lbl
+ 
+        stats_arr     = np.zeros((n_labels, 1), dtype=np.int64)
+        centroids_arr = np.zeros((n_labels, 2), dtype=np.float64)
+        for lbl_id in range(1, n_labels):
+            region = (labels == lbl_id)
+            area   = int(region.sum())
+            stats_arr[lbl_id, 0] = area
+            ys_r, xs_r = np.where(region)
+            centroids_arr[lbl_id] = [xs_r.mean(), ys_r.mean()]
+    else:
+        n_labels, labels, stats_cc, centroids_cc = \
+            cv.connectedComponentsWithStats(closed, connectivity=8)
+        stats_arr     = stats_cc[:, cv.CC_STAT_AREA].reshape(-1, 1)
+        centroids_arr = centroids_cc
+
+    best_label = -1
+    best_dist  = float('inf')
     for lbl in range(1, n_labels):
-        if stats[lbl, cv.CC_STAT_AREA] < 200:
+        if stats_arr[lbl, 0] < MIN_AREA:
             continue
-        dist = np.hypot(centroids[lbl][0] - cx_c, centroids[lbl][1] - cy_c)
-        if dist < best_dist:
-            best_dist, best_label = dist, lbl
+        cx, cy = centroids_arr[lbl]
+        d = np.hypot(cx - cx_c, cy - cy_c)
+        if d < best_dist:
+            best_dist, best_label = d, lbl
+ 
     if best_label == -1:
         return np.zeros((h, w), dtype=np.uint8), False
+ 
     return np.where(labels == best_label, 255, 0).astype(np.uint8), True
 
 
@@ -93,6 +168,7 @@ FEATURE_COLUMNS = [
     "CP_Area", "CP_Perimeter", "CP_Major_Axis", "CP_Minor_Axis",
     "CP_Compactness", "CP_Eccentricity", "CP_Solidity", "CP_Ratio",
     "Pallor_Contrast_R", "Pallor_Ratio_R",
+    "Rel_Diameter", "Rel_Area_Ratio",
     "GLCM_Contrast_Mean", "GLCM_Correlation_Mean",
     "GLCM_Energy_Mean", "GLCM_Homogeneity_Mean",
     "Color_Mean_R", "Color_Std_R", "Color_Skewness_R", "Color_Kurtosis_R",
@@ -103,24 +179,48 @@ FEATURE_COLUMNS = [
 
 def extract_all_features(cell_img_bgr, cell_mask_external, cell_label,
                          bbox_coords=None):
-                             
-    cell_mask_raw, found = isolate_target_cell(cell_img_bgr)
-    if not found:
-        cell_mask_raw = cell_mask_external if cell_mask_external is not None \
-                        else np.zeros(cell_img_bgr.shape[:2], dtype=np.uint8)
-
+ 
+    if (cell_mask_external is not None and
+            cell_mask_external.shape[:2] == cell_img_bgr.shape[:2] and
+            cell_mask_external.max() > 0):
+        cell_mask_raw = cell_mask_external.copy()
+    else:
+        cell_mask_raw, found = isolate_target_cell(cell_img_bgr)
+        if not found:
+            cell_mask_raw = np.zeros(cell_img_bgr.shape[:2], dtype=np.uint8)
+ 
+    # Rel_Diameter & Rel_Area_Ratio 
+    ys_raw, xs_raw = np.where(cell_mask_raw == 255)
+    if len(xs_raw) > 0:
+        bbox_w_raw       = float(xs_raw.max() - xs_raw.min() + 1)
+        bbox_h_raw       = float(ys_raw.max() - ys_raw.min() + 1)
+        cell_area_raw_px = float((cell_mask_raw == 255).sum())
+    else:
+        bbox_w_raw = bbox_h_raw = cell_area_raw_px = 0.0
+ 
+    crop_h_raw, crop_w_raw = cell_mask_raw.shape[:2]
+    crop_area_raw   = float(crop_h_raw * crop_w_raw)
+    rel_diameter    = ((bbox_w_raw + bbox_h_raw) / 2.0 / crop_w_raw
+                       if crop_w_raw > 0 else 0.0)
+    rel_area_ratio  = (cell_area_raw_px / crop_area_raw
+                       if crop_area_raw > 0 else 0.0)
+ 
+    # Normalize: crop-to-bbox + resize 96×96 
     crop_bgr, cell_mask, _ = normalize_cell_crop(cell_img_bgr, cell_mask_raw)
     h, w = crop_bgr.shape[:2]
-
+ 
     lab  = cv.cvtColor(crop_bgr, cv.COLOR_BGR2LAB)
     L_ch = lab[:, :, 0]
     b_ch, g_ch, r_ch = cv.split(crop_bgr)
-
+ 
+    # Morfologi 
     area = perimeter = maj_ax = min_ax = 0.0
     compactness = eccentricity = solidity = aspect_ratio = rectangularity = 0.0
     convexity = circularity_ratio = 0.0
-
-    contours, _ = cv.findContours(cell_mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    wc = hc = 0    # dipakai untuk erode_size CP
+ 
+    contours, _ = cv.findContours(cell_mask, cv.RETR_EXTERNAL,
+                                   cv.CHAIN_APPROX_SIMPLE)
     if contours:
         c         = max(contours, key=cv.contourArea)
         area      = cv.contourArea(c)
@@ -138,46 +238,65 @@ def extract_all_features(cell_img_bgr, cell_mask_external, cell_label,
         hull       = cv.convexHull(c)
         hull_area  = cv.contourArea(hull)
         hull_perim = cv.arcLength(hull, True)
-        solidity        = area / hull_area if hull_area > 0 else 0.0
-        convexity       = hull_perim / perimeter if perimeter > 0 else 0.0
-        compactness     = (perimeter**2) / (4 * np.pi * area) if area > 0 else 0.0
+        solidity          = area / hull_area if hull_area > 0 else 0.0
+        convexity         = hull_perim / perimeter if perimeter > 0 else 0.0
+        compactness       = (perimeter**2) / (4 * np.pi * area) if area > 0 else 0.0
         circularity_ratio = area / (perimeter**2) if perimeter > 0 else 0.0
-
+ 
+    # Warna
     mask_px = cell_mask == 255
     r_pix = r_ch[mask_px]; g_pix = g_ch[mask_px]; b_pix = b_ch[mask_px]
     if len(r_pix) == 0:
         r_pix = g_pix = b_pix = np.array([0], dtype=np.uint8)
-
+ 
     c_mean_r, c_std_r  = float(np.mean(r_pix)), float(np.std(r_pix))
     c_skew_r, c_kurt_r = float(skew(r_pix)),    float(kurtosis(r_pix))
     c_mean_g, c_std_g  = float(np.mean(g_pix)), float(np.std(g_pix))
     c_skew_g, c_kurt_g = float(skew(g_pix)),    float(kurtosis(g_pix))
     c_mean_b, c_std_b  = float(np.mean(b_pix)), float(np.std(b_pix))
     c_skew_b, c_kurt_b = float(skew(b_pix)),    float(kurtosis(b_pix))
-
+ 
+    # CP mask 
     cp_mask = np.zeros((h, w), dtype=np.uint8)
     filled        = _fill_holes(cell_mask)
     lumen_mask    = cv.subtract(filled, cell_mask)
     lumen_area    = int(np.sum(lumen_mask == 255))
     cell_area_now = int(np.sum(cell_mask == 255))
-
+ 
     if cell_area_now > 0 and lumen_area / cell_area_now > 0.05:
         cp_mask = lumen_mask
     else:
         l_pix_in = L_ch[mask_px]
         if len(l_pix_in) > 0:
-            thresh_cp = float(np.percentile(l_pix_in, 75))
-            _, cp_raw = cv.threshold(L_ch, thresh_cp, 255, cv.THRESH_BINARY)
-            cp_raw_m  = cv.bitwise_and(cp_raw, cp_raw, mask=cell_mask)
-            cp_conts, _ = cv.findContours(
-                cp_raw_m, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-            if cp_conts:
-                largest = max(cp_conts, key=cv.contourArea)
-                cv.drawContours(cp_mask, [largest], -1, 255, -1)
-
-    cp_contours, _ = cv.findContours(cp_mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-    euler_number   = 1 - sum(1 for cc in cp_contours if cv.contourArea(cc) > 10)
-
+            l_p75   = float(np.percentile(l_pix_in, 75))
+            l_med   = float(np.median(l_pix_in))
+            contrast_spread = l_p75 - l_med
+ 
+            MIN_CONTRAST_FOR_CP = 12.0
+            if contrast_spread >= MIN_CONTRAST_FOR_CP:
+                _, cp_raw = cv.threshold(L_ch, l_p75, 255, cv.THRESH_BINARY)
+ 
+                # Erosi tepi cell_mask sebelum AND — buang artefak tepi [#3]
+                erode_size = max(9, int(min(wc if wc > 0 else h,
+                                           hc if hc > 0 else w) * 0.20))
+                if erode_size % 2 == 0:
+                    erode_size += 1
+                k_erode = cv.getStructuringElement(
+                    cv.MORPH_ELLIPSE, (erode_size, erode_size))
+                cell_mask_eroded = cv.erode(cell_mask, k_erode)
+ 
+                cp_raw_m = cv.bitwise_and(cp_raw, cp_raw, mask=cell_mask_eroded)
+                cp_conts, _ = cv.findContours(cp_raw_m, cv.RETR_EXTERNAL,
+                                               cv.CHAIN_APPROX_SIMPLE)
+                if cp_conts:
+                    largest = max(cp_conts, key=cv.contourArea)
+                    cv.drawContours(cp_mask, [largest], -1, 255, -1)
+ 
+    cp_contours, _ = cv.findContours(cp_mask, cv.RETR_EXTERNAL,
+                                      cv.CHAIN_APPROX_SIMPLE)
+    euler_number   = 1 - sum(1 for cc in cp_contours
+                             if cv.contourArea(cc) > 10)
+ 
     cp_area = cp_perim = cp_maj = cp_min = 0.0
     cp_comp = cp_ecc = cp_solid = cp_ratio = 0.0
     if cp_contours:
@@ -196,26 +315,30 @@ def extract_all_features(cell_img_bgr, cell_mask_external, cell_label,
         hull_cp_area = cv.contourArea(hull_cp)
         cp_solid = cp_area / hull_cp_area if hull_cp_area > 0 else 0.0
         cp_comp  = (cp_perim**2) / (4 * np.pi * cp_area) if cp_area > 0 else 0.0
-
+ 
+    # Pallor — R-channel 
     pallor_px       = cp_mask == 255
     rim_px          = mask_px & (cp_mask == 0)
     r_pallor        = float(r_ch[pallor_px].mean()) if pallor_px.any() else 0.0
     r_rim           = float(r_ch[rim_px].mean())    if rim_px.any()    else 0.0
     pallor_contrast = r_pallor - r_rim
     pallor_ratio_r  = r_pallor / r_rim if r_rim > 0 else 0.0
-
+ 
+    # GLCM — dari gray_masked (background = 0) 
     gray = cv.cvtColor(crop_bgr, cv.COLOR_BGR2GRAY)
+    gray_masked = gray.copy()
+    gray_masked[cell_mask == 0] = 0          # ← hanya pixel dalam sel
     try:
-        glcm          = graycomatrix(gray, distances=[1],
-                                     angles=[0, np.pi/4, np.pi/2, 3*np.pi/4],
-                                     levels=256, symmetric=True, normed=True)
+        glcm = graycomatrix(gray_masked, distances=[1],
+                            angles=[0, np.pi/4, np.pi/2, 3*np.pi/4],
+                            levels=256, symmetric=True, normed=True)
         contrast_g    = graycoprops(glcm, 'contrast')[0]
         correlation_g = graycoprops(glcm, 'correlation')[0]
         energy_g      = graycoprops(glcm, 'energy')[0]
         homogeneity_g = graycoprops(glcm, 'homogeneity')[0]
     except Exception:
         contrast_g = correlation_g = energy_g = homogeneity_g = np.array([0.0])
-
+ 
     return {
         "Cell_Label"            : cell_label,
         "X"                     : bbox_coords[0] if bbox_coords else 0,
@@ -242,6 +365,8 @@ def extract_all_features(cell_img_bgr, cell_mask_external, cell_label,
         "CP_Ratio"              : round(cp_ratio, 4),
         "Pallor_Contrast_R"     : round(pallor_contrast, 4),
         "Pallor_Ratio_R"        : round(pallor_ratio_r, 4),
+        "Rel_Diameter"          : round(rel_diameter, 4),       # [#6]
+        "Rel_Area_Ratio"        : round(rel_area_ratio, 4),     # [#6]
         "GLCM_Contrast_Mean"    : round(float(np.mean(contrast_g)), 6),
         "GLCM_Correlation_Mean" : round(float(np.mean(correlation_g)), 6),
         "GLCM_Energy_Mean"      : round(float(np.mean(energy_g)), 6),
@@ -259,7 +384,6 @@ def extract_all_features(cell_img_bgr, cell_mask_external, cell_label,
         "Color_Skewness_B"      : round(c_skew_b, 4),
         "Color_Kurtosis_B"      : round(c_kurt_b, 4),
     }
-
 
 def run_feature_extraction(extracted_cells, bounding_boxes, cell_masks, img_shape,
                            output_csv_path=None, border_margin=5,
