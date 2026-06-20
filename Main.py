@@ -491,6 +491,7 @@ class MainWindow(QMainWindow):
             X = self.df_features[selected_features].replace([np.inf, -np.inf], np.nan).fillna(0)
             X_scaled    = self.ml_detector.scaler.transform(X)
             predictions = self.ml_detector.model.predict(X_scaled)
+            self.predictions = predictions
     
             ida_count    = int((predictions == 1).sum())
             normal_count = int((predictions == 0).sum())
@@ -547,8 +548,14 @@ class MainWindow(QMainWindow):
         pdf = PDFWithHeaderFooter(self.base_dir)
         
         features_to_pass = getattr(self, 'top10_features', []) 
-        
-        pdf.generate_result(
+
+        df_with_pred = None
+        if hasattr(self, 'df_features') and not self.df_features.empty:
+            df_with_pred = self.df_features.copy()
+            if hasattr(self, 'predictions'):
+                df_with_pred['Predicted_Class'] = self.predictions  # 0=Normal, 1=IDA
+            
+       pdf.generate_result(
             imagePath=self.imagePath, 
             detectPath=self.detectResultPath,
             cells=self.total_cells, 
@@ -556,7 +563,9 @@ class MainWindow(QMainWindow):
             parPath=self.current_sep_dir,
             output_path=pdf_path, 
             patient_name=self.current_patient,
-            top_features=features_to_pass # 
+            top_features=features_to_pass,
+            df_features=df_with_pred,          # ← baru
+            # feature_labels=None               # opsional, lihat catatan di bawah
         )
         if self.detectText: self.detectText.setText(f"Report generated in PDF format at {self.current_res_dir}")
 
