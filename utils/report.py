@@ -39,7 +39,7 @@ class PDFWithHeaderFooter(FPDF):
         self.set_y(-20)
         self.set_font(self.font_title, "", 15)
         self.set_text_color(100)
-        self.cell(0, 10, "MalaScope, 2026", align="L")
+        self.cell(0, 10, "Biolens, 2026", align="L")
         self.set_xy(65, 281)
         self.set_fill_color(4, 21, 98)
         self.cell(170, 2, fill=True)
@@ -61,7 +61,7 @@ class PDFWithHeaderFooter(FPDF):
         self.set_font_size(10)
         self.set_text_color(150)
         self.set_xy(18, 123)
-        self.multi_cell(170, 5, "Green bounding boxes indicate normal red blood cells, while red bounding boxes indicate IDA/malaria-infected cells.")
+        self.multi_cell(170, 5, "Green bounding boxes indicate normal red blood cells, while red bounding boxes indicate IDA cells.")
 
         self.set_text_color(0)
         self.set_xy(18, 135)
