@@ -551,8 +551,8 @@ class MainWindow(QMainWindow):
         features_to_pass = getattr(self, 'top10_features', []) 
 
         df_with_pred = None
-        if hasattr(self, 'df_features') and not self.df_features.empty:
-                and hasattr(self, 'predictions')):
+        if hasattr(self, 'df_features') and not self.df_features.empty: 
+            and hasattr(self, 'predictions')):
             df_with_pred = self.df_features.copy()
             df_with_pred['Predicted_Class'] = self.predictions
             
