@@ -19,8 +19,7 @@ def _fill_holes(mask):
     return cv.bitwise_or(mask, cv.bitwise_not(canvas))
 
 
-def normalize_cell_crop(crop_bgr, cell_mask, target_size=NORM_TARGET_SIZE,
-                        pad_frac=NORM_PAD_FRAC):
+def normalize_cell_crop(crop_bgr, cell_mask, target_size=NORM_TARGET_SIZE, pad_frac=NORM_PAD_FRAC):
     h, w   = cell_mask.shape[:2]
     ys, xs = np.where(cell_mask == 255)
     if len(ys) == 0:
@@ -58,10 +57,10 @@ def normalize_cell_crop(crop_bgr, cell_mask, target_size=NORM_TARGET_SIZE,
  
     if crop_sq.size == 0:
         crop_out = cv.resize(crop_bgr,  (target_size, target_size), interpolation=cv.INTER_AREA)
-        mask_out = cv.resize(cell_mask, (target_size, target_size),minterpolation=cv.INTER_NEAREST)
+        mask_out = cv.resize(cell_mask, (target_size, target_size), interpolation=cv.INTER_NEAREST)
         return crop_out, mask_out, False
  
-    crop_out = cv.resize(crop_sq, (target_size, target_size), minterpolation=cv.INTER_AREA)
+    crop_out = cv.resize(crop_sq, (target_size, target_size), interpolation=cv.INTER_AREA)
     mask_out = cv.resize(mask_sq, (target_size, target_size), interpolation=cv.INTER_NEAREST)
     _, mask_out = cv.threshold(mask_out, 127, 255, cv.THRESH_BINARY)
  
