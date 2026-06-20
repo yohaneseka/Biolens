@@ -555,7 +555,7 @@ class MainWindow(QMainWindow):
             if hasattr(self, 'predictions'):
                 df_with_pred['Predicted_Class'] = self.predictions  # 0=Normal, 1=IDA
             
-       pdf.generate_result(
+        pdf.generate_result(
             imagePath=self.imagePath, 
             detectPath=self.detectResultPath,
             cells=self.total_cells, 
@@ -564,8 +564,7 @@ class MainWindow(QMainWindow):
             output_path=pdf_path, 
             patient_name=self.current_patient,
             top_features=features_to_pass,
-            df_features=df_with_pred,          # ← baru
-            # feature_labels=None               # opsional, lihat catatan di bawah
+            df_features=df_with_pred,          
         )
         if self.detectText: self.detectText.setText(f"Report generated in PDF format at {self.current_res_dir}")
 
