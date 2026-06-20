@@ -44,6 +44,15 @@ class PDFWithHeaderFooter(FPDF):
 
         self.set_auto_page_break(auto=False)
 
+    def _find_asset(self, filename):
+        candidate1 = os.path.join(self.base_dir, "add-on", filename)
+        if os.path.exists(candidate1):
+            return candidate1
+        candidate2 = os.path.join(self.base_dir, filename)
+        if os.path.exists(candidate2):
+            return candidate2
+        return None
+        
     def rounded_box(self, x, y, w, h, r, style="F"):
         r = min(r, w / 2, h / 2)
         if "F" in style:
@@ -62,14 +71,14 @@ class PDFWithHeaderFooter(FPDF):
         logo_y = (24 - logo_h) / 2
         x_cursor = 196  
         
-        its_path = os.path.join(self.base_dir, "add-on", "ITS.png")
-        if os.path.exists(its_path):
+        its_path = self._find_asset("ITS.png")
+        if its_path:
             x_cursor -= logo_h
             self.image(its_path, x=x_cursor, y=logo_y, h=logo_h)
             x_cursor -= 3
-
-        biomed_path = os.path.join(self.base_dir, "add-on", "BIOMED.png")
-        if os.path.exists(biomed_path):
+ 
+        biomed_path = self._find_asset("BIOMED.png")
+        if biomed_path:
             x_cursor -= logo_h
             self.image(biomed_path, x=x_cursor, y=logo_y, h=logo_h)
             x_cursor -= 3
