@@ -208,8 +208,8 @@ def bounded_opening(mask, n_iter=ITERASI_BO):
         result = cv.morphologyEx(result, cv.MORPH_OPEN, se)
     return result
 
-def bounded_opening_frs(binary_mask, num_openings=ITERASI_BO):
-    staining, _, _ = detect_staining_level( cv.cvtColor(binary_mask, cv.COLOR_GRAY2RGB), fg_mask=binary_mask)
+def bounded_opening_frs(binary_mask, processed_img, num_openings=ITERASI_BO):
+    staining, _, _ = detect_staining_level(processed_img, fg_mask=binary_mask)
     if staining == "unstained":
         filled_mask = fill_cell_holes(binary_mask)
     else:
@@ -244,7 +244,7 @@ def bounded_opening_frs(binary_mask, num_openings=ITERASI_BO):
         frs_maps.append(smap)
  
     frs_combined = cv.normalize(
-        np.mean(frs_maps, axis=0), None, 0.0, 1.0, cv.NORM_MINMAX)
+        np.mean(frs_maps, axis=0), None, 0.0, 2.0, cv.NORM_MINMAX)
     combined_map = 0.6 * dist_norm + 0.4 * frs_combined
  
     # deteksi kasar -> estimasi nilai adaptif minimum 
