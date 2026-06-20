@@ -66,28 +66,36 @@ class PDFWithHeaderFooter(FPDF):
     def header(self):
         self.set_fill_color(*NAVY)
         self.rect(0, 0, 210, 24, "F")
-
-        logo_h = 13
+ 
+        logo_h = 12
         logo_y = (24 - logo_h) / 2
-        x_cursor = 196  
+        badge_pad = 1.6
+        badge_d = logo_h + 2 * badge_pad
+        badge_y = logo_y - badge_pad
+        x_cursor = 195  
         
         its_path = self._find_asset("ITS.png")
         if its_path:
-            x_cursor -= logo_h
-            self.image(its_path, x=x_cursor, y=logo_y, h=logo_h)
+            x_cursor -= badge_d
+            self.set_fill_color(*WHITE)
+            self.ellipse(x_cursor, badge_y, badge_d, badge_d, "F")
+            self.image(its_path, x=x_cursor + badge_pad, y=logo_y, h=logo_h)
             x_cursor -= 3
  
         biomed_path = self._find_asset("BIOMED.png")
         if biomed_path:
-            x_cursor -= logo_h
-            self.image(biomed_path, x=x_cursor, y=logo_y, h=logo_h)
+            x_cursor -= badge_d
+            self.set_fill_color(*WHITE)
+            self.ellipse(x_cursor, badge_y, badge_d, badge_d, "F")
+            self.image(biomed_path, x=x_cursor + badge_pad, y=logo_y, h=logo_h)
             x_cursor -= 3
-
-        logo_path = os.path.join(self.base_dir, "add-on", "logo.png")
-        if os.path.exists(logo_path):
-            x_cursor -= logo_h
-            self.image(logo_path, x=x_cursor, y=logo_y, h=logo_h)
-
+ 
+        logo_path = self._find_asset("logo.png")
+        if logo_path:
+            x_cursor -= badge_d
+            self.set_fill_color(*WHITE)
+            self.ellipse(x_cursor, badge_y, badge_d, badge_d, "F")
+            self.image(logo_path, x=x_cursor + badge_pad, y=logo_y, h=logo_h)
         self.set_xy(14, 6)
         self.set_text_color(*WHITE)
         self.set_font(self.font_title, "", 15)
