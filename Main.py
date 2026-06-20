@@ -312,8 +312,8 @@ class MainWindow(QMainWindow):
             if pixmap.isNull():
                 print(f"Gagal memuat Pixmap! File rusak: {imagePath}")
                 return
-            
-            self.raw_image = imageio.imread(imagePath)
+                
+            self.raw_image = cv.imread(imagePath)  
             self.raw_image_rgb = cv.cvtColor(self.raw_image, cv.COLOR_BGR2RGB)
 
             print(f"Menampilkan gambar ke QLabel: {imagePath}")
