@@ -402,7 +402,7 @@ class MainWindow(QMainWindow):
         if self.rbcValText: self.rbcValText.setText("Separating overlapping cells using BO-FRS + GMM...")
         QApplication.processEvents()
 
-        bofrs_results = bounded_opening_frs(self.filtered_mask, num_openings=3)
+        bofrs_results = bounded_opening_frs(self.filtered_mask, self.preprocessed_image, num_openings=3)
         self.extracted_cells, self.bounding_boxes_sep, self.cell_masks_list = separate_overlapping_rbc_with_gmm(bofrs_results, self.rbc_only_image)
 
         copy_rbc = self.rbc_only_image.copy()
