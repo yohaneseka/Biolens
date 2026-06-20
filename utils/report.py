@@ -15,7 +15,6 @@ GRAY_LINE   = (228, 230, 238)
 WHITE       = (255, 255, 255)
 DARK_TEXT   = (30, 33, 45)
 
-
 class PDFWithHeaderFooter(FPDF):
     def __init__(self, base_dir):
         super().__init__()
