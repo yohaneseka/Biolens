@@ -520,8 +520,8 @@ class MainWindow(QMainWindow):
             self.total_cells = ida_count + normal_count
             self.ida_cells   = ida_count
     
-            self.top10    = selected_features[:10]
-            top10 = selected_features[:10]
+            self.top10_features = selected_features[:10]   # ← nama atribut disamakan
+            top10 = self.top10_features
             summary = (
                 f"Deteksi Selesai!\n"
                 f"Total sel: {self.total_cells} | IDA: {ida_count} | Normal: {normal_count}\n"
