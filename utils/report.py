@@ -2,18 +2,18 @@ import os
 import time
 from fpdf import FPDF
 
-
-NAVY        = (4, 21, 98)      
-NAVY_LIGHT  = (35, 56, 148)   
+NAVY        = (4, 21, 98)     
+NAVY_LIGHT  = (35, 56, 148)    
 ACCENT_BLUE = (214, 222, 255)  
-RED         = (211, 47, 47)    
+RED         = (211, 47, 47)   
 RED_BG      = (253, 236, 236)
-GREEN       = (43, 138, 62)    
+GREEN       = (43, 138, 62)   
 GREEN_BG    = (235, 247, 237)
 GRAY_TEXT   = (110, 116, 130)
 GRAY_LINE   = (228, 230, 238)
 WHITE       = (255, 255, 255)
 DARK_TEXT   = (30, 33, 45)
+
 
 class PDFWithHeaderFooter(FPDF):
     def __init__(self, base_dir):
@@ -58,21 +58,26 @@ class PDFWithHeaderFooter(FPDF):
         self.set_fill_color(*NAVY)
         self.rect(0, 0, 210, 24, "F")
 
+        logo_h = 13
+        logo_y = (24 - logo_h) / 2
+        x_cursor = 196  
+        
         its_path = os.path.join(self.base_dir, "add-on", "ITS.png")
         if os.path.exists(its_path):
             x_cursor -= logo_h
             self.image(its_path, x=x_cursor, y=logo_y, h=logo_h)
             x_cursor -= 3
- 
+
         biomed_path = os.path.join(self.base_dir, "add-on", "BIOMED.png")
         if os.path.exists(biomed_path):
             x_cursor -= logo_h
             self.image(biomed_path, x=x_cursor, y=logo_y, h=logo_h)
             x_cursor -= 3
-            
+
         logo_path = os.path.join(self.base_dir, "add-on", "logo.png")
         if os.path.exists(logo_path):
-            self.image(logo_path, x=178, y=5, w=14)
+            x_cursor -= logo_h
+            self.image(logo_path, x=x_cursor, y=logo_y, h=logo_h)
 
         self.set_xy(14, 6)
         self.set_text_color(*WHITE)
@@ -138,9 +143,7 @@ class PDFWithHeaderFooter(FPDF):
         self.line(14, ly, 28, ly)
         self.ln(4)
 
-    def generate_result(self, imagePath, detectPath, cells, mal, parPath,
-                         output_path, patient_name, top_features=None,
-                         df_features=None, feature_labels=None):
+    def generate_result(self, imagePath, detectPath, cells, mal, parPath, output_path, patient_name, top_features=None, df_features=None, feature_labels=None):
         self.add_page()
         normal_count = cells - mal
         severity_ratio = (mal / cells * 100) if cells > 0 else 0
@@ -291,7 +294,7 @@ class PDFWithHeaderFooter(FPDF):
                     "morphological abnormalities associated with IDA were found.")
         self.set_x(21)
         self.multi_cell(168, 4.3, text)
-                             
+
         if df_features is not None and not df_features.empty and top_features:
             self._feature_analysis_page(df_features, top_features, feature_labels,
                                          parPath, is_ida)
