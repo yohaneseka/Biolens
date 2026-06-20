@@ -26,6 +26,7 @@ from core.image_processing import (
 from core.feature_extraction import run_feature_extraction
 from core.machine_learning import SVMDetector
 from utils.report import PDFWithHeaderFooter
+from core.feature_labels import FEATURE_LABELS
 
 class CaptureThread(QThread):
     capture_finished = pyqtSignal(bool)
@@ -551,9 +552,9 @@ class MainWindow(QMainWindow):
 
         df_with_pred = None
         if hasattr(self, 'df_features') and not self.df_features.empty:
+                and hasattr(self, 'predictions')):
             df_with_pred = self.df_features.copy()
-            if hasattr(self, 'predictions'):
-                df_with_pred['Predicted_Class'] = self.predictions  # 0=Normal, 1=IDA
+            df_with_pred['Predicted_Class'] = self.predictions
             
         pdf.generate_result(
             imagePath=self.imagePath, 
@@ -564,7 +565,8 @@ class MainWindow(QMainWindow):
             output_path=pdf_path, 
             patient_name=self.current_patient,
             top_features=features_to_pass,
-            df_features=df_with_pred,          
+            df_features=df_with_pred,       
+            feature_labels=FEATURE_LABELS,
         )
         if self.detectText: self.detectText.setText(f"Report generated in PDF format at {self.current_res_dir}")
 
