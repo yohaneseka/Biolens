@@ -59,7 +59,7 @@ class MagnificationSensor:
     SENSOR_WIDTH_MM  = 6.287
     SENSOR_HEIGHT_MM = 4.712
 
-    def __init__(self, reference_distance=180.0, reference_magnification=1000.0):
+    def __init__(self, reference_distance=160.0, reference_magnification=1000.0):
         """
         Args:
             reference_distance      : jarak referensi kalibrasi (mm)
