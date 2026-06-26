@@ -352,12 +352,12 @@ class MainWindow(QMainWindow):
 
         ref_image_rgb = None
         
-        if hasattr(self, 'is_primary_data') and not self.is_primary_data:
-            ref_path = os.path.join(self.base_dir, "source", "Referensi.png")
-            if os.path.exists(ref_path):
-                ref_image_rgb = cv.cvtColor(cv.imread(ref_path), cv.COLOR_BGR2RGB)
-            else:
-                print(f"Gambar referensi tidak ditemukan di {ref_path}. Normalisasi Reinhard dilewati.")
+        ref_path = os.path.join(self.base_dir, "source", "Referensi.png")
+        if os.path.exists(ref_path):
+            ref_image_rgb = cv.cvtColor(cv.imread(ref_path), cv.COLOR_BGR2RGB)
+        else:
+            ref_image_rgb = None
+            print(f"[WARNING] Gambar referensi tidak ditemukan di {ref_path}. Reinhard dilewati.")
 
         self.hsv_clean_image, _ = convert_hsv_circular(self.raw_image_rgb, v_thresh=20)
 
