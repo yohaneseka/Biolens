@@ -1,19 +1,20 @@
 import os
 import time
+import pandas as pd
 from fpdf import FPDF
 
-NAVY        = (4, 21, 98)     
+
+NAVY        = (4, 21, 98)      
 NAVY_LIGHT  = (35, 56, 148)    
 ACCENT_BLUE = (214, 222, 255)  
-RED         = (211, 47, 47)   
+RED         = (211, 47, 47)    
 RED_BG      = (253, 236, 236)
-GREEN       = (43, 138, 62)   
+GREEN       = (43, 138, 62)    
 GREEN_BG    = (235, 247, 237)
 GRAY_TEXT   = (110, 116, 130)
 GRAY_LINE   = (228, 230, 238)
 WHITE       = (255, 255, 255)
 DARK_TEXT   = (30, 33, 45)
-
 
 class PDFWithHeaderFooter(FPDF):
     def __init__(self, base_dir):
@@ -21,17 +22,16 @@ class PDFWithHeaderFooter(FPDF):
         self.base_dir = base_dir
         self.timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
 
-        poppins_path = os.path.join(self.base_dir, "add-on", "Poppins-Bold.ttf")
-        inter_path = os.path.join(self.base_dir, "add-on", "Inter_18pt-SemiBold.ttf")
-        inter_reg_path = os.path.join(self.base_dir, "add-on", "Inter_18pt-Regular.ttf")
+        poppins_path = self._find_asset("Poppins-Bold.ttf")
+        inter_path = self._find_asset("Inter_18pt-SemiBold.ttf")
+        inter_reg_path = self._find_asset("Inter_18pt-Regular.ttf")
 
-        if os.path.exists(poppins_path) and os.path.exists(inter_path):
+        if poppins_path and inter_path:
             self.add_font("Poppins", "", poppins_path, uni=True)
             self.add_font("Inter", "", inter_path, uni=True)
             self.font_title = "Poppins"
             self.font_body = "Inter"
-            
-            if os.path.exists(inter_reg_path):
+            if inter_reg_path:
                 self.add_font("Inter-Reg", "", inter_reg_path, uni=True)
                 self.font_reg = "Inter-Reg"
             else:
@@ -45,6 +45,8 @@ class PDFWithHeaderFooter(FPDF):
         self.set_auto_page_break(auto=False)
 
     def _find_asset(self, filename):
+        """Cari file asset: coba base_dir/add-on/filename dulu,
+        kalau tidak ada fallback ke base_dir/filename langsung."""
         candidate1 = os.path.join(self.base_dir, "add-on", filename)
         if os.path.exists(candidate1):
             return candidate1
@@ -52,8 +54,10 @@ class PDFWithHeaderFooter(FPDF):
         if os.path.exists(candidate2):
             return candidate2
         return None
-        
+
     def rounded_box(self, x, y, w, h, r, style="F"):
+        """Gambar persegi dengan sudut membulat — kompatibel semua versi fpdf2
+        (badan rect + 4 quarter-ellipse di tiap sudut, tanpa path API)."""
         r = min(r, w / 2, h / 2)
         if "F" in style:
             self.rect(x + r, y, w - 2 * r, h, "F")
@@ -64,16 +68,15 @@ class PDFWithHeaderFooter(FPDF):
             self.ellipse(x + w - 2 * r, y + h - 2 * r, 2 * r, 2 * r, "F")
 
     def header(self):
+        # Top navy bar penuh
         self.set_fill_color(*NAVY)
         self.rect(0, 0, 210, 24, "F")
- 
         logo_h = 12
         logo_y = (24 - logo_h) / 2
         badge_pad = 1.6
         badge_d = logo_h + 2 * badge_pad
         badge_y = logo_y - badge_pad
         x_cursor = 195  
-        
         its_path = self._find_asset("ITS.png")
         if its_path:
             x_cursor -= badge_d
@@ -81,7 +84,7 @@ class PDFWithHeaderFooter(FPDF):
             self.ellipse(x_cursor, badge_y, badge_d, badge_d, "F")
             self.image(its_path, x=x_cursor + badge_pad, y=logo_y, h=logo_h)
             x_cursor -= 3
- 
+
         biomed_path = self._find_asset("BIOMED.png")
         if biomed_path:
             x_cursor -= badge_d
@@ -89,13 +92,14 @@ class PDFWithHeaderFooter(FPDF):
             self.ellipse(x_cursor, badge_y, badge_d, badge_d, "F")
             self.image(biomed_path, x=x_cursor + badge_pad, y=logo_y, h=logo_h)
             x_cursor -= 3
- 
+
         logo_path = self._find_asset("logo.png")
         if logo_path:
             x_cursor -= badge_d
             self.set_fill_color(*WHITE)
             self.ellipse(x_cursor, badge_y, badge_d, badge_d, "F")
             self.image(logo_path, x=x_cursor + badge_pad, y=logo_y, h=logo_h)
+
         self.set_xy(14, 6)
         self.set_text_color(*WHITE)
         self.set_font(self.font_title, "", 15)
@@ -160,7 +164,10 @@ class PDFWithHeaderFooter(FPDF):
         self.line(14, ly, 28, ly)
         self.ln(4)
 
-    def generate_result(self, imagePath, detectPath, cells, mal, parPath, output_path, patient_name, top_features=None, df_features=None, feature_labels=None):
+    # Report
+    def generate_result(self, imagePath, detectPath, cells, mal, parPath,
+                         output_path, patient_name, top_features=None,
+                         df_features=None, feature_labels=None):
         self.add_page()
         normal_count = cells - mal
         severity_ratio = (mal / cells * 100) if cells > 0 else 0
@@ -178,6 +185,7 @@ class PDFWithHeaderFooter(FPDF):
         self.set_text_color(*GRAY_TEXT)
         self.cell(0, 5, f"Report generated on {self.timestamp}", ln=True)
 
+        # Stat
         card_y = 46
         card_w = (182 - 2 * 4) / 3
         self._stat_card(14, card_y, card_w, 20, "TOTAL RBC DETECTED", cells,
@@ -386,14 +394,49 @@ class PDFWithHeaderFooter(FPDF):
         self.set_line_width(0.2)
         self.line(14, self.get_y(), 196, self.get_y())
 
+        def pick_best_normal(df):
+            if df is None or len(df) == 0:
+                return None
+            score = pd.Series(0.0, index=df.index)
+            if "Area" in df.columns:
+                a = df["Area"]
+                if a.std() > 0:
+                    score += (a - a.min()) / (a.max() - a.min())
+            if "CP_Ratio" in df.columns:
+                r = df["CP_Ratio"]
+                if r.std() > 0:
+                    score -= (r - r.min()) / (r.max() - r.min())
+            return df.loc[score.idxmax()]
+
+        def pick_best_ida(df, mean_normal_area=None):
+            if df is None or len(df) == 0:
+                return None
+            score = pd.Series(0.0, index=df.index)
+            if "CP_Ratio" in df.columns:
+                r = df["CP_Ratio"]
+                if r.std() > 0:
+                    score += (r - r.min()) / (r.max() - r.min())
+            if "Area" in df.columns and mean_normal_area is not None:
+                a = df["Area"]
+                diff = (mean_normal_area - a).clip(lower=0)
+                if diff.max() > 0:
+                    score += diff / diff.max()
+            return df.loc[score.idxmax()]
+
+        mean_normal_area = (df_normal["Area"].mean()
+                            if df_normal is not None and "Area" in df_normal.columns
+                            else None)
+        best_normal = pick_best_normal(df_normal)
+        best_ida    = pick_best_ida(df_ida, mean_normal_area)
+
         sample_y = self.get_y() + 8
         self._section_title("Representative Cell Examples", y=sample_y)
         self.set_x(14)
         self.set_font(self.font_reg, "", 8.5)
         self.set_text_color(*GRAY_TEXT)
         self.multi_cell(182, 4.3,
-            "Below are sample cells with their actual extracted feature values, "
-            "shown side-by-side for each predicted class.")
+            "Below: the most representative Normal cell (largest area, smallest pallor) "
+            "and IDA cell (largest pallor ratio, smaller area) from this sample.")
         self.ln(2)
 
         card_top = self.get_y() + 2
@@ -401,10 +444,10 @@ class PDFWithHeaderFooter(FPDF):
         card_h = 64
 
         groups = []
-        if df_normal is not None and len(df_normal):
-            groups.append(("Normal", GREEN, GREEN_BG, df_normal.iloc[0]))
-        if df_ida is not None and len(df_ida):
-            groups.append(("IDA", RED, RED_BG, df_ida.iloc[0]))
+        if best_normal is not None:
+            groups.append(("Normal", GREEN, GREEN_BG, best_normal))
+        if best_ida is not None:
+            groups.append(("IDA", RED, RED_BG, best_ida))
 
         for idx, (label, color, bg, row) in enumerate(groups):
             x = 14 + idx * (card_w + 6)
