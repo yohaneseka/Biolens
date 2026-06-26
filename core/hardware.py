@@ -53,12 +53,28 @@ class ESP32Controller:
         if self.serial_conn and self.serial_conn.is_open:
             self.serial_conn.close()
 
+
 class MagnificationSensor:
-    def __init__(self):
+    # Spesifikasi sensor kamera RPi Camera Module V3
+    SENSOR_WIDTH_MM  = 6.287
+    SENSOR_HEIGHT_MM = 4.712
+
+    def __init__(self, reference_distance=180.0, reference_magnification=1000.0):
+        """
+        Args:
+            reference_distance      : jarak referensi kalibrasi (mm)
+            reference_magnification : magnifikasi pada jarak referensi (x)
+        """
+        self.reference_distance      = reference_distance
+        self.reference_magnification = reference_magnification
+
         self._sensor = None
-        self._mode = "simulation"
+        self._mode   = "simulation"
         self._init_sensor()
 
+    # ------------------------------------------------------------------ #
+    #  Inisialisasi hardware                                               #
+    # ------------------------------------------------------------------ #
     def _init_sensor(self):
         try:
             import board
@@ -73,17 +89,97 @@ class MagnificationSensor:
             print(f"VL53L0X tidak terdeteksi ({e}), mode simulasi aktif")
             self._mode = "simulation"
 
+    # ------------------------------------------------------------------ #
+    #  Baca jarak                                                          #
+    # ------------------------------------------------------------------ #
     def read_distance(self):
+        """Kembalikan jarak dalam cm. -1.0 jika gagal."""
         if self._mode == "vl53l0x":
             try:
                 mm = self._sensor.range
                 if mm <= 0 or mm > 8000:
                     return -1.0
-                return mm / 10.0
+                return mm / 10.0          # konversi mm → cm
             except Exception as e:
                 print(f"Gagal baca sensor: {e}")
                 return -1.0
-        return 15.4
+        return 15.4                       # nilai simulasi default (cm)
+
+    # ------------------------------------------------------------------ #
+    #  Hitung magnifikasi dari jarak                                       #
+    # ------------------------------------------------------------------ #
+    def calculate_magnification(self, distance_cm: float) -> float:
+        """
+        Hitung magnifikasi berdasarkan jarak (cm).
+
+        Rumus: M = (d_ref × M_ref) / d
+        Hubungan invers: semakin dekat → magnifikasi semakin besar.
+
+        Returns:
+            float: nilai magnifikasi (x), atau -1.0 jika input tidak valid
+        """
+        if distance_cm <= 0:
+            return -1.0
+        distance_mm = distance_cm * 10.0
+        return (self.reference_distance * self.reference_magnification) / distance_mm
+
+    # ------------------------------------------------------------------ #
+    #  Hitung Field of View dari magnifikasi                               #
+    # ------------------------------------------------------------------ #
+    def calculate_fov(self, magnification: float):
+        """
+        Hitung Field of View (FOV) berdasarkan magnifikasi.
+
+        FOV = Ukuran sensor fisik / Magnifikasi total
+
+        Returns:
+            tuple (fov_width_mm, fov_height_mm), atau (-1.0, -1.0) jika invalid
+        """
+        if magnification <= 0:
+            return -1.0, -1.0
+        fov_w = self.SENSOR_WIDTH_MM  / magnification
+        fov_h = self.SENSOR_HEIGHT_MM / magnification
+        return fov_w, fov_h
+
+    # ------------------------------------------------------------------ #
+    #  Baca semua sekaligus (convenience method)                           #
+    # ------------------------------------------------------------------ #
+    def read_all(self):
+        """
+        Baca jarak lalu hitung magnifikasi dan FOV sekaligus.
+
+        Returns:
+            dict dengan key: distance_cm, distance_mm,
+                             magnification, fov_width_mm, fov_height_mm
+        """
+        distance_cm   = self.read_distance()
+        magnification = self.calculate_magnification(distance_cm)
+        fov_w, fov_h  = self.calculate_fov(magnification)
+
+        return {
+            "distance_cm"   : distance_cm,
+            "distance_mm"   : distance_cm * 10.0 if distance_cm > 0 else -1.0,
+            "magnification" : magnification,
+            "fov_width_mm"  : fov_w,
+            "fov_height_mm" : fov_h,
+        }
+
+    # ------------------------------------------------------------------ #
+    #  Kalibrasi ulang                                                     #
+    # ------------------------------------------------------------------ #
+    def calibrate(self, current_distance_cm: float, known_magnification: float):
+        """
+        Kalibrasi ulang sensor dengan nilai yang diketahui.
+
+        Args:
+            current_distance_cm : jarak aktual saat ini (cm)
+            known_magnification : magnifikasi yang diketahui pada jarak tersebut
+        """
+        if current_distance_cm > 0 and known_magnification > 0:
+            self.reference_distance      = current_distance_cm * 10.0  # simpan dalam mm
+            self.reference_magnification = known_magnification
+            print(f"✅ Kalibrasi berhasil: {current_distance_cm:.1f}cm = {known_magnification:.0f}x")
+
 
 class CameraSystem:
     def __init__(self):
