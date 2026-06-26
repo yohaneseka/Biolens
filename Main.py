@@ -68,7 +68,7 @@ class MainWindow(QMainWindow):
         os.makedirs(self.master_data_dir, exist_ok=True)
 
         self.motor = ESP32Controller()
-        self.sensor = MagnificationSensor(tube_length_mm=160.0, objective_mag=100.0, eyepiece_mag=10.0)
+        self.sensor = MagnificationSensor(tube_length_mm=180.0, objective_mag=100.0, eyepiece_mag=10.0)
         self.camera = CameraSystem()
         self.ml_detector = SVMDetector(self.base_dir)
 
