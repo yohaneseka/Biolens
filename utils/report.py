@@ -4,17 +4,19 @@ import pandas as pd
 from fpdf import FPDF
 
 
-NAVY        = (4, 21, 98)      
-NAVY_LIGHT  = (35, 56, 148)    
-ACCENT_BLUE = (214, 222, 255)  
-RED         = (211, 47, 47)    
+# ── Palet warna brand Biolens ────────────────────────────────────────────
+NAVY        = (4, 21, 98)      # biru tua brand (header/footer asli)
+NAVY_LIGHT  = (35, 56, 148)    # biru sedang (hover state UI)
+ACCENT_BLUE = (214, 222, 255)  # biru pucat (background kartu)
+RED         = (211, 47, 47)    # IDA
 RED_BG      = (253, 236, 236)
-GREEN       = (43, 138, 62)    
+GREEN       = (43, 138, 62)    # Normal
 GREEN_BG    = (235, 247, 237)
 GRAY_TEXT   = (110, 116, 130)
 GRAY_LINE   = (228, 230, 238)
 WHITE       = (255, 255, 255)
 DARK_TEXT   = (30, 33, 45)
+
 
 class PDFWithHeaderFooter(FPDF):
     def __init__(self, base_dir):
@@ -31,6 +33,7 @@ class PDFWithHeaderFooter(FPDF):
             self.add_font("Inter", "", inter_path, uni=True)
             self.font_title = "Poppins"
             self.font_body = "Inter"
+            # font regular opsional, biar body text tidak terlalu tebal
             if inter_reg_path:
                 self.add_font("Inter-Reg", "", inter_reg_path, uni=True)
                 self.font_reg = "Inter-Reg"
@@ -44,6 +47,7 @@ class PDFWithHeaderFooter(FPDF):
 
         self.set_auto_page_break(auto=False)
 
+    # ── Helpers ──────────────────────────────────────────────────────────
     def _find_asset(self, filename):
         """Cari file asset: coba base_dir/add-on/filename dulu,
         kalau tidak ada fallback ke base_dir/filename langsung."""
@@ -71,12 +75,18 @@ class PDFWithHeaderFooter(FPDF):
         # Top navy bar penuh
         self.set_fill_color(*NAVY)
         self.rect(0, 0, 210, 24, "F")
+
+        # Logo institusi (BIOMED & ITS) di kanan, sejajar logo Biolens.
+        # Badge lingkaran putih di belakang tiap logo supaya kontras
+        # terlepas dari warna asli file logo (banyak logo institusi
+        # punya background putih/transparan yang menyatu dengan navy).
         logo_h = 12
         logo_y = (24 - logo_h) / 2
         badge_pad = 1.6
         badge_d = logo_h + 2 * badge_pad
         badge_y = logo_y - badge_pad
-        x_cursor = 195  
+        x_cursor = 195  # mulai dari tepi kanan, mundur ke kiri
+
         its_path = self._find_asset("ITS.png")
         if its_path:
             x_cursor -= badge_d
@@ -124,6 +134,7 @@ class PDFWithHeaderFooter(FPDF):
         self.cell(95, 6, "Biolens - Automated Microscopy Report", align="L")
         self.cell(95, 6, f"Page {self.page_no()}", align="R")
 
+    # ── Building blocks ──────────────────────────────────────────────────
     def _stat_card(self, x, y, w, h, label, value, value_color=DARK_TEXT, bg=ACCENT_BLUE):
         self.set_fill_color(*bg)
         self.rounded_box(x, y, w, h, 2.5, style="F")
@@ -164,7 +175,7 @@ class PDFWithHeaderFooter(FPDF):
         self.line(14, ly, 28, ly)
         self.ln(4)
 
-    # Report
+    # ── Main report ──────────────────────────────────────────────────────
     def generate_result(self, imagePath, detectPath, cells, mal, parPath,
                          output_path, patient_name, top_features=None,
                          df_features=None, feature_labels=None):
@@ -173,6 +184,7 @@ class PDFWithHeaderFooter(FPDF):
         severity_ratio = (mal / cells * 100) if cells > 0 else 0
         is_ida = mal > 0
 
+        # ── Patient info strip ──────────────────────────────────────────
         self.set_xy(14, 30)
         self.set_font(self.font_title, "", 13)
         self.set_text_color(*DARK_TEXT)
@@ -185,7 +197,7 @@ class PDFWithHeaderFooter(FPDF):
         self.set_text_color(*GRAY_TEXT)
         self.cell(0, 5, f"Report generated on {self.timestamp}", ln=True)
 
-        # Stat
+        # ── Stat cards row ───────────────────────────────────────────────
         card_y = 46
         card_w = (182 - 2 * 4) / 3
         self._stat_card(14, card_y, card_w, 20, "TOTAL RBC DETECTED", cells,
@@ -195,6 +207,7 @@ class PDFWithHeaderFooter(FPDF):
         self._stat_card(14 + 2 * (card_w + 4), card_y, card_w, 20, "IDA CELLS", mal,
                          value_color=RED, bg=RED_BG)
 
+        # ── Images: raw vs detection ────────────────────────────────────
         img_y = 72
         self._section_title("Detection Overview", y=img_y)
         img_top = self.get_y()
@@ -232,6 +245,7 @@ class PDFWithHeaderFooter(FPDF):
         self.set_xy(74, legend_y)
         self.cell(45, 5, "IDA-classified cell")
 
+        # ── Key features section ─────────────────────────────────────────
         feat_y = legend_y + 10
         self._section_title("Key Morphological Features Analyzed", y=feat_y)
 
@@ -268,6 +282,7 @@ class PDFWithHeaderFooter(FPDF):
             self.multi_cell(182, 4.3, "Morphological features such as cell area, perimeter, "
                                        "and shape factor were analyzed to determine cell normality.")
 
+        # ── Sample cell crops grid ───────────────────────────────────────
         grid_y = self.get_y() + 5
         self._section_title("Sample Extracted Cells", y=grid_y)
         grid_top = self.get_y()
@@ -292,6 +307,7 @@ class PDFWithHeaderFooter(FPDF):
         else:
             grid_bottom = grid_top + 4
 
+        # ── Conclusion banner ────────────────────────────────────────────
         box_y = grid_bottom + 10
         box_h = 26
         color = RED if is_ida else GREEN
@@ -320,12 +336,14 @@ class PDFWithHeaderFooter(FPDF):
         self.set_x(21)
         self.multi_cell(168, 4.3, text)
 
+        # ── Halaman 2: Analisis fitur (opsional) ──────────────────────────
         if df_features is not None and not df_features.empty and top_features:
             self._feature_analysis_page(df_features, top_features, feature_labels,
                                          parPath, is_ida)
 
         self.output(output_path)
 
+    # ── Halaman analisis fitur ──────────────────────────────────────────
     def _feature_analysis_page(self, df_features, top_features, feature_labels, parPath, is_ida):
         feature_labels = feature_labels or {}
         pred_col = "Predicted_Class" if "Predicted_Class" in df_features.columns else None
@@ -341,11 +359,13 @@ class PDFWithHeaderFooter(FPDF):
             "model's decision.")
         self.ln(2)
 
+        # ── Tabel agregat: fitur | mean Normal | mean IDA | delta ────────
         table_y = self.get_y() + 2
         row_h = 7.5
         col_feat = 62
         col_val = (182 - col_feat) / 3
 
+        # Header tabel
         self.set_xy(14, table_y)
         self.set_fill_color(*NAVY)
         self.set_text_color(*WHITE)
@@ -394,7 +414,57 @@ class PDFWithHeaderFooter(FPDF):
         self.set_line_width(0.2)
         self.line(14, self.get_y(), 196, self.get_y())
 
-        def pick_best_normal(df):
+        # ── Contoh sel representatif ──────────────────────────────────────
+        # Filter kualitas visual: buang sel yang crop-nya gelap/blur/terpotong
+        # sebelum scoring morfologi dilakukan.
+        def _visual_quality(cell_label, parPath,
+                            min_brightness=40,
+                            min_laplacian=20,
+                            min_coverage=0.25):
+            """Return True kalau crop gambar lolos cek kualitas visual.
+            Cek: brightness, ketajaman (Laplacian variance), foreground coverage."""
+            if not parPath or not os.path.isdir(parPath):
+                return True  # tidak bisa cek, anggap lolos
+            path = os.path.join(parPath, f"cell_{int(cell_label) - 1}.png")
+            if not os.path.exists(path):
+                return True  # file tidak ada, anggap lolos supaya tidak buang semua
+            try:
+                import cv2 as cv
+                img = cv.imread(path)
+                if img is None:
+                    return True
+                gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+                # 1. Brightness: mean pixel seluruh crop
+                if gray.mean() < min_brightness:
+                    return False
+                # 2. Sharpness: Laplacian variance — blur kalau < threshold
+                lap_var = cv.Laplacian(gray, cv.CV_64F).var()
+                if lap_var < min_laplacian:
+                    return False
+                # 3. Coverage: % pixel non-hitam (> 15) terhadap total
+                coverage = (gray > 15).sum() / gray.size
+                if coverage < min_coverage:
+                    return False
+                return True
+            except Exception:
+                return True  # fallback: anggap lolos kalau ada error
+
+        def _filter_by_quality(df, parPath):
+            """Kembalikan df yang sudah difilter hanya baris dengan crop berkualitas."""
+            if df is None or len(df) == 0:
+                return df
+            mask = df["Cell_Label"].apply(
+                lambda lbl: _visual_quality(lbl, parPath)
+            )
+            filtered = df[mask]
+            # Fallback: kalau semua dibuang (threshold terlalu ketat), kembalikan semua
+            return filtered if len(filtered) > 0 else df
+
+        # Normal terbaik: Area paling besar + CP_Ratio paling kecil (pallor kecil)
+        # IDA terbaik:    CP_Ratio paling besar + Area relatif lebih kecil dari
+        #                 mean Normal (mikrositik + pallor lebar)
+        def pick_best_normal(df, parPath):
+            df = _filter_by_quality(df, parPath)
             if df is None or len(df) == 0:
                 return None
             score = pd.Series(0.0, index=df.index)
@@ -408,7 +478,8 @@ class PDFWithHeaderFooter(FPDF):
                     score -= (r - r.min()) / (r.max() - r.min())
             return df.loc[score.idxmax()]
 
-        def pick_best_ida(df, mean_normal_area=None):
+        def pick_best_ida(df, parPath, mean_normal_area=None):
+            df = _filter_by_quality(df, parPath)
             if df is None or len(df) == 0:
                 return None
             score = pd.Series(0.0, index=df.index)
@@ -426,8 +497,8 @@ class PDFWithHeaderFooter(FPDF):
         mean_normal_area = (df_normal["Area"].mean()
                             if df_normal is not None and "Area" in df_normal.columns
                             else None)
-        best_normal = pick_best_normal(df_normal)
-        best_ida    = pick_best_ida(df_ida, mean_normal_area)
+        best_normal = pick_best_normal(df_normal, parPath)
+        best_ida    = pick_best_ida(df_ida, parPath, mean_normal_area)
 
         sample_y = self.get_y() + 8
         self._section_title("Representative Cell Examples", y=sample_y)
@@ -454,12 +525,15 @@ class PDFWithHeaderFooter(FPDF):
             self.set_fill_color(*bg)
             self.rounded_box(x, card_top, card_w, card_h, 2.5, style="F")
 
+            # Badge label
             self.set_xy(x + 4, card_top + 4)
             self.set_font(self.font_title, "", 9)
             self.set_text_color(*color)
             cell_id = int(row.get("Cell_Label", idx + 1))
             self.cell(card_w - 8, 5, f"{label} - Cell #{cell_id}", ln=True)
 
+            # Thumbnail: nama file mengikuti pola "cell_{idx}.png" dari Main_Program.py,
+            # di mana idx = Cell_Label - 1 (Cell_Label diberi idx_asli + 1 saat quality filter)
             img_x = x + 4
             img_y = card_top + 11
             img_size = 32
@@ -494,6 +568,7 @@ class PDFWithHeaderFooter(FPDF):
                 self.set_font(self.font_reg, "", 7.3)
                 self.set_text_color(50, 54, 66)
 
+            # Sisa fitur (jika top_features > 4) di baris bawah, full width kartu
             remaining = top_features[4:8]
             if remaining:
                 ry = img_y + img_size + 6
