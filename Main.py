@@ -498,6 +498,9 @@ class MainWindow(QMainWindow):
             normal_count = int((predictions == 0).sum())
     
             result_img = cv.cvtColor(self.raw_image_rgb.copy(), cv.COLOR_RGB2BGR)
+            n_counter = 1
+            i_counter = 1
+
             for i, pred in enumerate(predictions):
                 x = int(self.df_features.iloc[i]["X"])
                 y = int(self.df_features.iloc[i]["Y"])
@@ -505,9 +508,16 @@ class MainWindow(QMainWindow):
                     (b for b in self.bounding_boxes_sep if b[0] == x and b[1] == y), None
                 )
                 bx, by, bw, bh = bbox_match if bbox_match else (x, y, 40, 40)
-    
-                color = (0, 0, 255) if pred == 1 else (0, 255, 0)
-                label = "IDA" if pred == 1 else "Normal"
+            
+                if pred == 1:
+                    color = (0, 0, 255)
+                    label = f"I{i_counter}"
+                    i_counter += 1
+                else:
+                    color = (0, 255, 0)
+                    label = f"N{n_counter}"
+                    n_counter += 1
+            
                 cv.rectangle(result_img, (bx, by), (bx + bw, by + bh), color, 5)
                 cv.putText(result_img, label, (bx, by - 8),
                            cv.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
