@@ -170,13 +170,29 @@ class MainWindow(QMainWindow):
         self.close()
     
     def update_sensor_value(self):
-        distance = self.sensor.read_distance()
-       
+        data = self.sensor.read_all()          # pakai method baru
+        distance_cm   = data["distance_cm"]
+        magnification = data["magnification"]
+        fov_w         = data["fov_width_mm"]
+    
         if self.distVal:
-            self.distVal.setText(
-                f"Lens to Object Dist : {distance:.1f} mm"
-            )
-
+            if distance_cm <= 0:
+                self.distVal.setText("Lens to Object Dist : -- | -- x | FOV: --")
+            else:
+                # format FOV ke unit yang sesuai
+                if fov_w >= 1.0:
+                    fov_str = f"{fov_w:.2f} mm"
+                elif fov_w >= 0.001:
+                    fov_str = f"{fov_w*1000:.1f} µm"
+                else:
+                    fov_str = f"{fov_w*1000000:.0f} nm"
+    
+                self.distVal.setText(
+                    f"Dist: {distance_cm:.1f} cm  |  "
+                    f"Mag: {magnification:.0f}x  |  "
+                    f"FOV: {fov_str}"
+                )
+                
     def setStyles(self):
         btn_style = "QPushButton {border:1px; border-radius: 10px; color: rgb(0,0,0); background-color: rgb(214, 222, 255);} QPushButton:hover {background-color: rgb(35, 56, 148); color: rgb(255,255,255);} QPushButton:checked {background-color: rgb(4, 21, 98); color: rgb(255,255,255);}"
         menu_style = "QPushButton {border:1px; color: rgb(225,225,225); background-color: rgb(17, 70, 143)} QPushButton:hover {background-color: rgb(35, 56, 148); color: rgb(255,255,255);} QPushButton:checked {background-color: rgb(4, 21, 98); color: rgb(255,255,255);}"
