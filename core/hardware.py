@@ -58,7 +58,7 @@ class MagnificationSensor:
     SENSOR_WIDTH_MM  = 6.287
     SENSOR_HEIGHT_MM = 4.712
 
-    def __init__(self, tube_length_mm=160.0, objective_mag=100.0, eyepiece_mag=10.0): 
+    def __init__(self, tube_length_mm=180.0, objective_mag=100.0, eyepiece_mag=10.0): 
         self.tube_length_mm = tube_length_mm
         self.objective_mag  = objective_mag
         self.eyepiece_mag   = eyepiece_mag
