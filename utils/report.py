@@ -418,9 +418,9 @@ class PDFWithHeaderFooter(FPDF):
         # Filter kualitas visual: buang sel yang crop-nya gelap/blur/terpotong
         # sebelum scoring morfologi dilakukan.
         def _visual_quality(cell_label, parPath,
-                            min_brightness=40,
-                            min_laplacian=20,
-                            min_coverage=0.25):
+                            min_brightness=55,
+                            min_laplacian=15,
+                            min_coverage=0.30):
             """Return True kalau crop gambar lolos cek kualitas visual.
             Cek: brightness, ketajaman (Laplacian variance), foreground coverage."""
             if not parPath or not os.path.isdir(parPath):
@@ -483,15 +483,23 @@ class PDFWithHeaderFooter(FPDF):
             if df is None or len(df) == 0:
                 return None
             score = pd.Series(0.0, index=df.index)
+            # CP_Ratio tinggi = pallor lebar (ciri IDA kuat)
             if "CP_Ratio" in df.columns:
                 r = df["CP_Ratio"]
                 if r.std() > 0:
                     score += (r - r.min()) / (r.max() - r.min())
+            # Area lebih kecil dari Normal = mikrositik
             if "Area" in df.columns and mean_normal_area is not None:
                 a = df["Area"]
                 diff = (mean_normal_area - a).clip(lower=0)
                 if diff.max() > 0:
                     score += diff / diff.max()
+            # Color_Mean_R tinggi = crop berwarna (merah/pink), bukan gelap/artefak
+            # Ini yang menyaring sel seperti Cell #70 yang crop-nya gelap
+            if "Color_Mean_R" in df.columns:
+                c = df["Color_Mean_R"]
+                if c.std() > 0:
+                    score += (c - c.min()) / (c.max() - c.min()) * 1.5  # bobot 1.5x
             return df.loc[score.idxmax()]
 
         mean_normal_area = (df_normal["Area"].mean()
