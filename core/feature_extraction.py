@@ -216,7 +216,7 @@ def extract_all_features(cell_img_bgr, cell_mask_external, cell_label,
     area = perimeter = maj_ax = min_ax = 0.0
     compactness = eccentricity = solidity = aspect_ratio = rectangularity = 0.0
     convexity = circularity_ratio = 0.0
-    wc = hc = 0    # dipakai untuk erode_size CP
+    wc = hc = 0    
  
     contours, _ = cv.findContours(cell_mask, cv.RETR_EXTERNAL,
                                    cv.CHAIN_APPROX_SIMPLE)
@@ -385,7 +385,7 @@ def extract_all_features(cell_img_bgr, cell_mask_external, cell_label,
     }
 
 def run_feature_extraction(extracted_cells, bounding_boxes, cell_masks, img_shape,
-                           output_csv_path=None, border_margin=5,
+                           output_csv_path=None, border_margin=2,
                            min_area=200, max_area=5000, min_dim=15,
                            min_ar=0.6, max_ar=1.6):
     cell_imgs = [item[0] if isinstance(item, tuple) else item
