@@ -505,9 +505,23 @@ class MainWindow(QMainWindow):
             if missing:
                 raise Exception(f"Fitur tidak ada di hasil ekstraksi: {missing}")
     
-            X = self.df_features[selected_features].replace([np.inf, -np.inf], np.nan).fillna(0)
+            X = self.df_features[selected_features].replace([np.inf, -np.inf], np.nan)
+            if self.ml_detector.imputer is not None:
+                X = pd.DataFrame(
+                    self.ml_detector.imputer.transform(X),
+                    columns=selected_features
+                )
+            else:
+                from sklearn.impute import SimpleImputer
+                fallback = SimpleImputer(strategy='median')
+                X = pd.DataFrame(
+                    fallback.fit_transform(X),
+                    columns=selected_features
+                )
+            
             X_scaled    = self.ml_detector.scaler.transform(X)
             predictions = self.ml_detector.model.predict(X_scaled)
+    
             self.predictions = predictions
     
             ida_count    = int((predictions == 1).sum())
