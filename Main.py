@@ -23,7 +23,7 @@ from core.image_processing import (
     bounded_opening_frs, separate_overlapping_rbc_with_gmm, sobel_edge_detect,
     draw_bounding_boxes, extract_contours
 )
-from core.feature_extraction import run_feature_extraction
+from core.feature_extraction import run_feature_extraction, FEATURE_COLUMNS
 from core.machine_learning import SVMDetector
 from utils.report import PDFWithHeaderFooter
 from core.dictionary import FEATURE_LABELS
@@ -501,25 +501,23 @@ class MainWindow(QMainWindow):
             if not selected_features:
                 raise Exception("Metadata model tidak memiliki daftar 'features'.")
     
-            missing = [f for f in selected_features if f not in self.df_features.columns]
-            if missing:
-                raise Exception(f"Fitur tidak ada di hasil ekstraksi: {missing}")
-    
-            X = self.df_features[selected_features].replace([np.inf, -np.inf], np.nan)
+            X_40 = self.df_features[FEATURE_COLUMNS].replace([np.inf, -np.inf], np.nan)
             if self.ml_detector.imputer is not None:
-                X = pd.DataFrame(
-                    self.ml_detector.imputer.transform(X),
-                    columns=selected_features
+                X_40_imputed = pd.DataFrame(
+                    self.ml_detector.imputer.transform(X_40),
+                    columns=FEATURE_COLUMNS
                 )
             else:
                 from sklearn.impute import SimpleImputer
                 fallback = SimpleImputer(strategy='median')
-                X = pd.DataFrame(
-                    fallback.fit_transform(X),
-                    columns=selected_features
+                X_40_imputed = pd.DataFrame(
+                    fallback.fit_transform(X_40),
+                    columns=FEATURE_COLUMNS
                 )
             
-            X_scaled    = self.ml_detector.scaler.transform(X)
+            X_20 = X_40_imputed[selected_features]
+            
+            X_scaled    = self.ml_detector.scaler.transform(X_20)
             predictions = self.ml_detector.model.predict(X_scaled)
     
             self.predictions = predictions
